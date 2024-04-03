@@ -1,0 +1,5 @@
+**/_project/
+**/_bin/
+vulkan-headers/
+.DS_Store
+build/
