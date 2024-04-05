@@ -95,8 +95,11 @@ export namespace evk
         vk::raii::CommandPool commandPool;
     };
 
-    
-    EVK_API constexpr vk::MemoryPropertyFlags eHostVisibleHostCached = vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible;
+    // namespace Memory {
+    //     EVK_API constexpr vk::MemoryPropertyFlags devLocal = vk::MemoryPropertyFlagBits::eDeviceLocal;
+    //     EVK_API constexpr vk::MemoryPropertyFlags devLocalHostVisible = vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible;
+    //     EVK_API constexpr vk::MemoryPropertyFlags devLocalHostVisibleCached = vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCached;
+    // }
     struct Buffer : Resource
     {
         EVK_API Buffer();

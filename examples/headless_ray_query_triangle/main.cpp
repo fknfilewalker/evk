@@ -89,7 +89,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     // Image setup
     evk::Image image{ device, {target.width, target.height, 1}, vk::Format::eR8G8B8A8Snorm, vk::ImageTiling::eLinear,
-        vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eHostTransferEXT, evk::eHostVisibleHostCached };
+        vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible };
     image.transitionLayout(vk::ImageLayout::eGeneral);
 
     // Descriptor set setup
