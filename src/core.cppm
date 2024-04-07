@@ -44,6 +44,7 @@ export namespace evk
         using QueueCount = uint32_t;
         using Queues = std::unordered_map<QueueFamily, QueueCount>;
 
+        EVK_API Device() : vk::raii::Device{ nullptr } {}
         EVK_API Device(
             const vk::raii::PhysicalDevice& physicalDevice,
             const std::vector<const char*>& extensions,
