@@ -26,7 +26,7 @@ SBT::SBT(
 
 	sizeInBytes = 0;
 	// rgen
-	// each entry aligned with shaderGroupBaseAlignment
+	// each entry aligned with shaderGroupBaseAligned
 	{
 		uint32_t offset = 0;
 		rgenRegions.reserve(rgen.size());
