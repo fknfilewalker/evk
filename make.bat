@@ -23,3 +23,4 @@ rmdir /Q /S %INSTALL_DIR% 2>NUL
 GOTO DONE
 
 :DONE
+pause
