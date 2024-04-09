@@ -36,6 +36,7 @@ template EVK_API bool utils::extensionsOrLayersAvailable<vk::ExtensionProperties
 template <typename T>
 bool utils::addExtOrLayerIfAvailable(std::vector<const char*>& extensions, const std::vector<T>& available, const char* requested)
 {
+    static_assert(std::is_same_v<vk::LayerProperties, T> || std::is_same_v<vk::ExtensionProperties, T>);
     if (utils::extensionOrLayerAvailable(available, requested)) {
         extensions.push_back(requested);
         return true;
@@ -48,6 +49,7 @@ template EVK_API bool utils::addExtOrLayerIfAvailable<vk::ExtensionProperties>(s
 template <typename T>
 void utils::addExtsOrLayersIfAvailable(std::vector<const char*>& extensions, const std::vector<T>& available, const std::vector<const char*>& requested, const std::function<void(const char*)>& notAvailableCallback)
 {
+    static_assert(std::is_same_v<vk::LayerProperties, T> || std::is_same_v<vk::ExtensionProperties, T>);
     for (const char* r : requested) if (!utils::addExtOrLayerIfAvailable(extensions, available, r) && notAvailableCallback) notAvailableCallback(r);
 }
 template EVK_API void utils::addExtsOrLayersIfAvailable<vk::LayerProperties>(std::vector<const char*>&, const std::vector<vk::LayerProperties>&, const std::vector<const char*>&, const std::function<void(const char*)>&);
@@ -56,6 +58,7 @@ template EVK_API void utils::addExtsOrLayersIfAvailable<vk::ExtensionProperties>
 template<typename T>
 bool utils::remExtOrLayerIfNotAvailable(std::vector<const char*>& extensions, const std::vector<T>& available, const char* requested)
 {
+    static_assert(std::is_same_v<vk::LayerProperties, T> || std::is_same_v<vk::ExtensionProperties, T>);
     const auto oldSize = extensions.size();
     std::vector<const char*> out;
     out.reserve(oldSize);
@@ -71,6 +74,7 @@ template EVK_API bool utils::remExtOrLayerIfNotAvailable<vk::ExtensionProperties
 template <typename T>
 void utils::remExtsOrLayersIfNotAvailable(std::vector<const char*>& extensions, const std::vector<T>& available, const std::function<void(const char*)>& removeCallback)
 {
+    static_assert(std::is_same_v<vk::LayerProperties, T> || std::is_same_v<vk::ExtensionProperties, T>);
     std::vector<const char*> out;
     out.reserve(extensions.size());
     for (const char* r : extensions) if (!utils::addExtOrLayerIfAvailable(out, available, r) && removeCallback) removeCallback(r);
