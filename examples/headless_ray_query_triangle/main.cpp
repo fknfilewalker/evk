@@ -1,4 +1,3 @@
-import evk;
 #include <cstdio>
 #include <vector>
 #include <array>
@@ -6,6 +5,8 @@ import evk;
 #include <functional>
 #include <fstream>
 #include "shaders.h"
+
+import evk;
 
 [[noreturn]] void exitWithError(const std::string_view error = "") {
     if(error.empty()) std::printf("%s\n", error.data());

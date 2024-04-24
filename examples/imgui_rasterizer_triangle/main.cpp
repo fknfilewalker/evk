@@ -1,5 +1,3 @@
-import evk;
-import evk.imgui;
 #include <cstdio>
 #include <cstdint>
 #include <vector>
@@ -16,6 +14,9 @@ import evk.imgui;
 #include "shaders.h"
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
+
+import evk;
+import evk.imgui;
 
 [[noreturn]] void exitWithError(const std::string_view error = "") {
     if (error.empty()) std::printf("%s\n", error.data());

@@ -1,4 +1,3 @@
-import evk;
 #include <cstdio>
 #include <cstdint>
 #include <vector>
@@ -13,6 +12,8 @@ import evk;
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 #include "shaders.h"
+
+import evk;
 
 [[noreturn]] void exitWithError(const std::string_view error = "") {
     if (error.empty()) std::printf("%s\n", error.data());
