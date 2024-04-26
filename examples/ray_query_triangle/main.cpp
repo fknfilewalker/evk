@@ -112,8 +112,16 @@ int main(int /*argc*/, char** /*argv*/)
     // Swapchain setup
     const auto sCapabilities = device->physicalDevice.getSurfaceCapabilitiesKHR(*surface);
     const auto sFormats = device->physicalDevice.getSurfaceFormatsKHR(*surface);
+
+    std::optional<vk::SurfaceFormatKHR> sFormat;
+    for (size_t i = 0; i < sFormats.size() && !sFormat.has_value(); ++i) {
+        if (device->imageFormatSupported(sFormats[i].format, vk::ImageType::e2D, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst))
+            sFormat = sFormats[i];
+	}
+    if (!sFormat.has_value()) exitWithError("No suitable swapchain format found");
+
     const vk::SwapchainCreateInfoKHR swapchainCreateInfo{ {}, *surface, evk::utils::clampSwapchainImageCount(2u, sCapabilities),
-                sFormats[0].format, sFormats[0].colorSpace, sCapabilities.currentExtent, 1u, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst };
+                sFormat.value().format, sFormat.value().colorSpace, sCapabilities.currentExtent, 1u, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst };
     evk::Swapchain swapchain{ device, swapchainCreateInfo, queueFamilyIndex.value() };
     vk::ImageMemoryBarrier2 imageMemoryBarrier{};
     imageMemoryBarrier.setSubresourceRange({ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });

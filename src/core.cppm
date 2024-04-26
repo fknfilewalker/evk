@@ -56,6 +56,14 @@ export namespace evk
             const vk::MemoryRequirements& requirements, 
             vk::MemoryPropertyFlags propertyFlags
         ) const;
+
+        EVK_API [[nodiscard]] bool imageFormatSupported(
+            vk::Format format,
+            vk::ImageType type,
+            vk::ImageTiling tiling,
+            vk::ImageUsageFlags usage,
+            vk::ImageCreateFlags flags = {}
+        ) const;
         
         EVK_API const Queue& getQueue(
             QueueFamily queueFamily, 

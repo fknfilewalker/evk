@@ -52,10 +52,21 @@ Device::Device(
     }
 }
 
-[[nodiscard]] std::optional<uint32_t> Device::findMemoryTypeIndex(const vk::MemoryRequirements& requirements, const vk::MemoryPropertyFlags propertyFlags) const
+std::optional<uint32_t> Device::findMemoryTypeIndex(const vk::MemoryRequirements& requirements, const vk::MemoryPropertyFlags propertyFlags) const
 {
     return utils::findMemoryTypeIndex(memoryProperties, requirements, propertyFlags);
 }
+
+bool Device::imageFormatSupported(const vk::Format format, const vk::ImageType type, const vk::ImageTiling tiling, const vk::ImageUsageFlags usage, const vk::ImageCreateFlags flags) const
+{
+    try {
+	    auto _ = physicalDevice.getImageFormatProperties2({ format, type, tiling, usage, flags });
+		return true;
+	} catch (const vk::SystemError&) {
+		return false;
+	}
+}
+
 const Queue& Device::getQueue(const QueueFamily queueFamily, const QueueCount queueIndex)
 {
     if (queueFamily >= _queues.size()) throw std::out_of_range( "Queue family index out of range" );
