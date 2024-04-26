@@ -11,7 +11,6 @@ export namespace evk
 	{
 		EVK_API ImGuiBackend(
 			const std::shared_ptr<Device>& device,
-			const vk::raii::SurfaceKHR& surface,
 			uint32_t imageCount
 		);
 

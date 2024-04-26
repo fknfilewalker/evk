@@ -123,7 +123,7 @@ int main(int /*argc*/, char** /*argv*/)
     ImGui::GetStyle().ScaleAllSizes(scaleFactor);
     ImGui::StyleColorsDark();
 
-    evk::ImGuiBackend imguiBackend{ device, surface, swapchain.imageCount };
+    evk::ImGuiBackend imguiBackend{ device, swapchain.imageCount };
     imguiBackend.setFont();
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
