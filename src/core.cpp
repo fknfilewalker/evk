@@ -60,7 +60,7 @@ std::optional<uint32_t> Device::findMemoryTypeIndex(const vk::MemoryRequirements
 bool Device::imageFormatSupported(const vk::Format format, const vk::ImageType type, const vk::ImageTiling tiling, const vk::ImageUsageFlags usage, const vk::ImageCreateFlags flags) const
 {
     try {
-	    auto _ = physicalDevice.getImageFormatProperties2({ format, type, tiling, usage, flags });
+	    auto _ = physicalDevice.getImageFormatProperties(format, type, tiling, usage, flags);
 		return true;
 	} catch (const vk::SystemError&) {
 		return false;

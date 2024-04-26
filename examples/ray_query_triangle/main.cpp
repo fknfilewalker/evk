@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include <string_view>
+#include <optional>
 #ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
 #elif __APPLE__
