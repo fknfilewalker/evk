@@ -64,7 +64,8 @@ export namespace evk {
 
         EVK_API std::optional<uint32_t> findQueueFamilyIndex(
             const std::vector<vk::QueueFamilyProperties>& queueFamiliesProperties,
-            vk::QueueFlags queueFlags
+            vk::QueueFlags queueFlags,
+            const std::vector<uint32_t>& ignoreFamilies = {}
         );
         EVK_API [[nodiscard]] std::optional<uint32_t> findMemoryTypeIndex(
             const vk::PhysicalDeviceMemoryProperties& memoryProperties,

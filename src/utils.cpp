@@ -84,11 +84,15 @@ template EVK_API void utils::remExtsOrLayersIfNotAvailable<vk::LayerProperties>(
 template EVK_API void utils::remExtsOrLayersIfNotAvailable<vk::ExtensionProperties>(std::vector<const char*>&, const std::vector<vk::ExtensionProperties>&, const std::function<void(const char*)>&);
 
 
-std::optional<uint32_t> utils::findQueueFamilyIndex(const std::vector<vk::QueueFamilyProperties>& queueFamiliesProperties, const vk::QueueFlags queueFlags)
+std::optional<uint32_t> utils::findQueueFamilyIndex(
+    const std::vector<vk::QueueFamilyProperties>& queueFamiliesProperties, 
+    const vk::QueueFlags queueFlags,
+    const std::vector<uint32_t>& ignoreFamilies)
 {
     std::optional<uint32_t> bestFamily;
     std::bitset<12> bestScore = 0;
     for (uint32_t i = 0; i < queueFamiliesProperties.size(); i++) {
+        if (std::ranges::find(ignoreFamilies, i) != ignoreFamilies.end()) continue;
         // check if queue family supports all requested queue flags
         if (static_cast<uint32_t>(queueFamiliesProperties[i].queueFlags & queueFlags) == static_cast<uint32_t>(queueFlags)) {
             const std::bitset<12> score = static_cast<uint32_t>(queueFamiliesProperties[i].queueFlags);
