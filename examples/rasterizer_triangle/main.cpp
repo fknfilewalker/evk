@@ -47,10 +47,15 @@ int main(int /*argc*/, char** /*argv*/)
 	evk::Instance instance { ctx, instanceFlags, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion12 }, iLayers, iExtensions };
 
     // Surface Setup
-#ifdef _WIN32
-    const vk::raii::SurfaceKHR surface{ instance, vk::Win32SurfaceCreateInfoKHR{ {}, GetModuleHandle(nullptr), glfwGetWin32Window(window) } };
-#elif __APPLE__
-    const vk::raii::SurfaceKHR surface{ instance, vk::MetalSurfaceCreateInfoEXT{ {}, glfwGetMetalLayer(window) } };
+    const vk::raii::SurfaceKHR surface
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+    { instance, vk::Win32SurfaceCreateInfoKHR{ {}, GetModuleHandle(nullptr), glfwGetWin32Window(window) } };
+#elif VK_USE_PLATFORM_XLIB_KHR
+    { instance, vk::XlibSurfaceCreateInfoKHR{ {}, glfwGetX11Display(), glfwGetX11Window(window) } };
+#elif VK_USE_PLATFORM_WAYLAND_KHR
+    { instance, vk::WaylandSurfaceCreateInfoKHR{ {}, glfwGetWaylandDisplay(), glfwGetWaylandMonitor(window) } };
+#elif VK_USE_PLATFORM_METAL_EXT
+    { instance, vk::MetalSurfaceCreateInfoEXT{ {}, glfwGetMetalLayer(window) } };
 #endif
 
     // Device setup

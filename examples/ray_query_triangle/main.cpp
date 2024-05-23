@@ -45,12 +45,11 @@ int main(int /*argc*/, char** /*argv*/)
     evk::Instance instance{ ctx, {}, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion13 }, iLayers, iExtensions };
 
     // Surface Setup
-#ifdef _WIN32
-    const vk::Win32SurfaceCreateInfoKHR surfaceCreateInfo{ {}, nullptr, glfwGetWin32Window(window) };
-#elif __APPLE__
-    const vk::MetalSurfaceCreateInfoEXT surfaceCreateInfo{ {}, glfwGetCocoaWindow(window) };
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+    const vk::raii::SurfaceKHR surface{ instance, vk::Win32SurfaceCreateInfoKHR{ {}, GetModuleHandle(nullptr), glfwGetWin32Window(window) } };
+#elif VK_USE_PLATFORM_METAL_EXT
+    const vk::raii::SurfaceKHR surface{ instance, vk::MetalSurfaceCreateInfoEXT{ {}, glfwGetMetalLayer(window) } };
 #endif
-    vk::raii::SurfaceKHR surface{ instance, surfaceCreateInfo };
 
     // Device setup
     const vk::raii::PhysicalDevices physicalDevices{ instance };
