@@ -61,12 +61,14 @@ elseif(APPLE)
     find_package(Vulkan REQUIRED)
     target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
 elseif(UNIX)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC VK_USE_PLATFORM_XLIB_KHR)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "EVK_API=" INTERFACE "EVK_API=")
 endif()
 
 # optional imgui backend
 # window backends need to be included in the main project
 if(EVK_INCLUDE_IMGUI_BACKEND) # imgui
-    set(EVK_INCLUDE_IMGUI_VERSION "v1.90.4" CACHE STRING "ImGui version")
+    set(EVK_INCLUDE_IMGUI_VERSION "v1.90.6" CACHE STRING "ImGui version")
     FetchContent_Declare(imgui-source GIT_REPOSITORY https://github.com/ocornut/imgui.git GIT_TAG ${EVK_INCLUDE_IMGUI_VERSION})
     FetchContent_GetProperties(imgui-source)
     if(NOT imgui-source_POPULATED)
@@ -106,6 +108,13 @@ if(EVK_BUILD_EXAMPLES)
     FetchContent_MakeAvailable(glfw)
     set_target_properties(glfw update_mappings PROPERTIES FOLDER "${EVK_EXTERNAL_FOLDER}/glfw")
     target_compile_definitions(glfw INTERFACE "GLFW_INCLUDE_NONE")
+    if(WIN32)
+        target_compile_definitions(glfw INTERFACE "GLFW_EXPOSE_NATIVE_WIN32")
+    elseif(APPLE)
+        target_compile_definitions(glfw INTERFACE "GLFW_EXPOSE_NATIVE_COCOA")
+    elseif(UNIX)
+        target_compile_definitions(glfw INTERFACE "GLFW_EXPOSE_NATIVE_X11")
+    endif()
     # </glfw>
 
     function(add_target target)
