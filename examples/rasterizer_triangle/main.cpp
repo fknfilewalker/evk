@@ -154,7 +154,7 @@ int main(int /*argc*/, char** /*argv*/)
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
         imageMemoryBarrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
         cb.pipelineBarrier2(dependencyInfo);
-        swapchain.submitImage(device->getQueue(queueFamilyIndex.value(), 0), { vk::PipelineStageFlagBits::eColorAttachmentOutput });
+        swapchain.submitImage(device->getQueue(queueFamilyIndex.value(), 0), vk::PipelineStageFlagBits::eColorAttachmentOutput);
     }
     device->waitIdle();
     glfwDestroyWindow(window);

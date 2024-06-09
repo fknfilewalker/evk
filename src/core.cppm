@@ -345,7 +345,7 @@ export namespace evk
             newFrame.commandBuffer.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
         }
 
-        EVK_API void submitImage(const vk::raii::Queue& presentQueue, const std::vector<vk::PipelineStageFlags>& waitDstStageMask = { vk::PipelineStageFlagBits::eNone }) {
+        EVK_API void submitImage(const vk::raii::Queue& presentQueue, const vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eNone) {
             const Frame& curFrame = getCurrentFrame();
             curFrame.commandBuffer.end();
 
