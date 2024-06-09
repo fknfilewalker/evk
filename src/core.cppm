@@ -263,6 +263,7 @@ export namespace evk
 
     struct Shader : Resource, vk::raii::ShaderModule
     {
+        EVK_API Shader() : Resource{ nullptr }, vk::raii::ShaderModule{ nullptr } {}
         EVK_API Shader(
             const std::shared_ptr<Device>& device,
             const vk::ShaderStageFlagBits stage,
@@ -313,6 +314,7 @@ export namespace evk
             vk::raii::CommandBuffer commandBuffer;
         };
 
+        EVK_API Swapchain() : Resource{ nullptr }, currentImageIdx{ 0 }, previousImageIdx{ 0 }, imageCount{ 0 }, extent{ 0, 0 }, swapchainKHR{ nullptr }, commandPool{ nullptr } {}
         EVK_API Swapchain(const std::shared_ptr<Device>& device, const vk::SwapchainCreateInfoKHR& createInfo, const uint32_t queueFamilyIndex) : Resource{ device }, currentImageIdx{ 0 }, previousImageIdx{ 0 },
             swapchainKHR{ nullptr }, commandPool{ *dev, { vk::CommandPoolCreateFlagBits::eResetCommandBuffer, queueFamilyIndex } }
         {
