@@ -49,7 +49,7 @@ export namespace evk
             const vk::raii::PhysicalDevice& physicalDevice,
             const std::vector<const char*>& extensions,
             const Queues& queues,
-            const void* pNext = nullptr
+            void* pNext = nullptr
         );
 
         EVK_API [[nodiscard]] std::optional<uint32_t> findMemoryTypeIndex(
@@ -84,6 +84,8 @@ export namespace evk
         vk::PhysicalDeviceSubgroupProperties subgroupProperties;
         vk::PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
         vk::PhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties;
+        // has
+        bool hasAccelerationStructureActive = false;
     };
 
     // Every resource has a device reference

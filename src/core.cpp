@@ -9,6 +9,14 @@ import :core;
 import :utils;
 using namespace evk;
 
+namespace
+{
+    struct VkStruct {
+        vk::StructureType sType;
+        void* pNext;
+    };
+}
+
 void Queue::submitAndWaitIdle(vk::ArrayProxy<const vk::SubmitInfo> const& submits, const vk::Fence fence) const
 {
 	submit(submits, fence);
@@ -25,7 +33,7 @@ Device::Device(
     const vk::raii::PhysicalDevice& physicalDevice,
     const std::vector<const char*>& extensions,
     const Queues& queues,
-    const void* pNext
+    void* pNext
 ) : vk::raii::Device{ nullptr }, physicalDevice{ physicalDevice }, memoryProperties{ physicalDevice.getMemoryProperties() }
 {
     const auto prop = physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceSubgroupProperties, vk::PhysicalDeviceRayTracingPipelinePropertiesKHR, vk::PhysicalDeviceAccelerationStructurePropertiesKHR>();
@@ -50,6 +58,15 @@ Device::Device(
         _queues[queueFamilyIndex] = std::vector<Queue>{ queueCount, {nullptr} };
         for (uint32_t i = 0; i < queueCount; ++i) _queues[queueFamilyIndex][i] = evk::Queue{ vk::raii::Device::getQueue(queueFamilyIndex, i) };
     }
+
+    auto* p = static_cast<VkStruct*>(pNext);
+    while(p) {
+		if (p->sType == vk::StructureType::ePhysicalDeviceAccelerationStructureFeaturesKHR) {
+            const vk::PhysicalDeviceAccelerationStructureFeaturesKHR* s = reinterpret_cast<vk::PhysicalDeviceAccelerationStructureFeaturesKHR*>(p);
+            hasAccelerationStructureActive = s->accelerationStructure;
+		}
+		p = static_cast<VkStruct*>(p->pNext);
+	}
 }
 
 std::optional<uint32_t> Device::findMemoryTypeIndex(const vk::MemoryRequirements& requirements, const vk::MemoryPropertyFlags propertyFlags) const
