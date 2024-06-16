@@ -57,7 +57,7 @@ int main(int /*argc*/, char** /*argv*/)
     // * check extensions
     std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName, vk::KHRDynamicRenderingExtensionName,
         vk::KHRRayQueryExtensionName, vk::KHRAccelerationStructureExtensionName, vk::KHRDeferredHostOperationsExtensionName,
-        vk::KHRFormatFeatureFlags2ExtensionName, vk::KHRSynchronization2ExtensionName, vk::KHRMaintenance4ExtensionName };
+        vk::KHRFormatFeatureFlags2ExtensionName, vk::KHRSynchronization2ExtensionName, vk::KHRMaintenance4ExtensionName, vk::EXTHostImageCopyExtensionName };
     if constexpr (evk::isApple) dExtensions.emplace_back("VK_KHR_portability_subset");
 
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
@@ -110,7 +110,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     std::optional<vk::SurfaceFormatKHR> sFormat;
     for (size_t i = 0; i < sFormats.size() && !sFormat.has_value(); ++i) {
-        if (device->imageFormatSupported(sFormats[i].format, vk::ImageType::e2D, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst))
+        if (device->imageFormatSupported(sFormats[i].format, vk::ImageType::e2D, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eHostTransferEXT))
             sFormat = sFormats[i];
 	}
     if (!sFormat.has_value()) exitWithError("No suitable swapchain format found");
@@ -123,13 +123,17 @@ int main(int /*argc*/, char** /*argv*/)
     vk::DependencyInfo dependencyInfo = vk::DependencyInfo{}.setImageMemoryBarriers(imageMemoryBarrier);
 
     // Descriptor set setup
+    std::vector<evk::Image> images;
     std::vector<evk::DescriptorSet> descriptorSets;
     descriptorSets.reserve(swapchain.frames.size());
     for (const auto& frame : swapchain.frames) {
-        descriptorSets.emplace_back(device, evk::DescriptorSet::Bindings{
+        images.emplace_back(device, vk::Extent3D{ target.width, target.height, 1 }, sFormat.value().format, vk::ImageTiling::eOptimal,
+            vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        images.back().transitionLayout(vk::ImageLayout::eGeneral);
+    	descriptorSets.emplace_back(device, evk::DescriptorSet::Bindings{
             { { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eAll }, { vk::DescriptorBindingFlagBits::eVariableDescriptorCount } }
             });
-        descriptorSets.back().setDescriptor(0, vk::DescriptorImageInfo{ {}, frame.imageView, vk::ImageLayout::eGeneral });
+        descriptorSets.back().setDescriptor(0, vk::DescriptorImageInfo{ {}, images.back().imageView, vk::ImageLayout::eGeneral });
         descriptorSets.back().update();
     }
 
@@ -156,12 +160,6 @@ int main(int /*argc*/, char** /*argv*/)
         swapchain.acquireNextImage();
         const auto& cFrame = swapchain.getCurrentFrame();
         const auto& cb = cFrame.commandBuffer;
-
-        imageMemoryBarrier.image = cFrame.image;
-        imageMemoryBarrier.oldLayout = vk::ImageLayout::eUndefined;
-        imageMemoryBarrier.newLayout = vk::ImageLayout::eGeneral;
-        cb.pipelineBarrier2(dependencyInfo);
-
         {
             cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shader.layout, 0, { descriptorSets[swapchain.currentImageIdx] }, {});
             cb.bindShadersEXT(shader.stages, shader.shaders);
@@ -169,7 +167,29 @@ int main(int /*argc*/, char** /*argv*/)
             cb.dispatch(workGroupCount[0], workGroupCount[1], 1);
         }
 
+        evk::Image& src_image = images[swapchain.currentImageIdx];
+        imageMemoryBarrier.image = cFrame.image;
+        imageMemoryBarrier.oldLayout = vk::ImageLayout::eUndefined;
+        imageMemoryBarrier.newLayout = vk::ImageLayout::eTransferDstOptimal;
+        cb.pipelineBarrier2(dependencyInfo);
+        imageMemoryBarrier.image = src_image.image;
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eGeneral;
+        imageMemoryBarrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
+        cb.pipelineBarrier2(dependencyInfo);
+
+        auto copy_info = vk::CopyImageInfo2KHR{}
+            .setSrcImage(src_image.image).setSrcImageLayout(vk::ImageLayout::eTransferSrcOptimal)
+            .setDstImage(cFrame.image).setDstImageLayout(vk::ImageLayout::eTransferDstOptimal)
+			.setRegions(vk::ImageCopy2{}.setExtent(vk::Extent3D{target.width, target.height, 1})
+			.setSrcSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 })
+            .setDstSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 }));
+		cb.copyImage2(copy_info);
+
+        imageMemoryBarrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
+        imageMemoryBarrier.newLayout = vk::ImageLayout::eGeneral;
+        cb.pipelineBarrier2(dependencyInfo);
+        imageMemoryBarrier.image = cFrame.image;
+        imageMemoryBarrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
         imageMemoryBarrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
         cb.pipelineBarrier2(dependencyInfo);
         swapchain.submitImage(device->getQueue(queueFamilyIndex.value(), 0));

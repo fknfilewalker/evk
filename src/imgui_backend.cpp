@@ -156,6 +156,7 @@ void ImGuiBackend::setFont(const std::string_view filepath, const float scaleFac
 
 	fontImage = evk::Image{ dev, { static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1u }, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear,
 		vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
+	fontImage.transitionLayout(vk::ImageLayout::eTransferDstOptimal);
 	fontImage.copyMemoryToImage(pixels);
 	fontImage.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 

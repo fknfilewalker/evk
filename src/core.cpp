@@ -124,7 +124,7 @@ Image::Image(
 
     const vk::ImageCreateInfo imageCreateInfo{ {}, imageType, format, extent,
     	1, 1, vk::SampleCountFlagBits::e1, tiling,
-    	usageFlags | vk::ImageUsageFlagBits::eHostTransferEXT
+    	usageFlags
     };
     image = vk::raii::Image{ *dev, imageCreateInfo };
     const auto memoryRequirements = dev->getImageMemoryRequirements2({ *image }).memoryRequirements;
@@ -134,7 +134,6 @@ Image::Image(
     const vk::MemoryAllocateInfo memoryAllocateInfo{ memoryRequirements.size, memoryTypeIndex.value(), &memoryAllocateFlagsInfo };
     memory = vk::raii::DeviceMemory{ *dev, memoryAllocateInfo };
     image.bindMemory(*memory, 0);
-    transitionLayout(vk::ImageLayout::eGeneral);
 
     const vk::ImageViewType imageViewType = utils::extentToImageViewType(extent);
     imageView = vk::raii::ImageView{ *dev, vk::ImageViewCreateInfo{ {}, *image, imageViewType, format,
@@ -147,8 +146,8 @@ Image::Image(
         auto hostImageCopyProperties = properties.get<vk::PhysicalDeviceHostImageCopyPropertiesEXT>();
 
         auto imageFormatInfo = vk::PhysicalDeviceImageFormatInfo2{ format, imageType, tiling, usageFlags, {} };
-        auto formatProperties = device->physicalDevice.getImageFormatProperties2<vk::ImageFormatProperties2, vk::HostImageCopyDevicePerformanceQueryEXT>(imageFormatInfo);
-        auto hostImageCopyDevicePerformanceQuery = formatProperties.get<vk::HostImageCopyDevicePerformanceQueryEXT>();
+        //auto formatProperties = device->physicalDevice.getImageFormatProperties2<vk::ImageFormatProperties2, vk::HostImageCopyDevicePerformanceQueryEXT>(imageFormatInfo);
+        //auto hostImageCopyDevicePerformanceQuery = formatProperties.get<vk::HostImageCopyDevicePerformanceQueryEXT>();
 
         int x = 2;
     }
