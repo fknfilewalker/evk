@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
+cmake_policy(SET CMP0069 NEW) 
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0169 OLD)
+
 project(evk)
 
 #================================#
@@ -30,7 +34,7 @@ include(FetchContent)
 FetchContent_Declare(vulkan-headers GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git)
 FetchContent_GetProperties(vulkan-headers)
 if(NOT vulkan-headers_POPULATED)
-    FetchContent_Populate(vulkan-headers)
+    FetchContent_MakeAvailable(vulkan-headers)
 endif()
 message(STATUS "Vulkan-Headers dir: ${vulkan-headers_SOURCE_DIR}")
 
@@ -72,7 +76,7 @@ if(EVK_INCLUDE_IMGUI_BACKEND) # imgui
     FetchContent_Declare(imgui-source GIT_REPOSITORY https://github.com/ocornut/imgui.git GIT_TAG ${EVK_INCLUDE_IMGUI_VERSION})
     FetchContent_GetProperties(imgui-source)
     if(NOT imgui-source_POPULATED)
-        FetchContent_Populate(imgui-source)
+        FetchContent_MakeAvailable(imgui-source)
     endif()
     message(STATUS "ImGui-Source dir: ${imgui-source_SOURCE_DIR}")
     if(NOT EVK_IS_TOPLEVEL_PROJECT)
