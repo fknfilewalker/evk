@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
 cmake_policy(SET CMP0069 NEW) 
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
-set(CMAKE_POLICY_DEFAULT_CMP0169 OLD)
 
 project(evk)
-
 #================================#
 # VARS                           #
 #================================#
@@ -31,11 +29,7 @@ include(FetchContent)
 #================================#
 # VULKAN-HEADERS                 #
 #================================#
-FetchContent_Declare(vulkan-headers GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git)
-FetchContent_GetProperties(vulkan-headers)
-if(NOT vulkan-headers_POPULATED)
-    FetchContent_MakeAvailable(vulkan-headers)
-endif()
+FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/heads/main.zip QUIET)
 message(STATUS "Vulkan-Headers dir: ${vulkan-headers_SOURCE_DIR}")
 
 #================================#
@@ -73,23 +67,19 @@ endif()
 # window backends need to be included in the main project
 if(EVK_INCLUDE_IMGUI_BACKEND) # imgui
     set(EVK_INCLUDE_IMGUI_VERSION "v1.90.6" CACHE STRING "ImGui version")
-    FetchContent_Declare(imgui-source GIT_REPOSITORY https://github.com/ocornut/imgui.git GIT_TAG ${EVK_INCLUDE_IMGUI_VERSION})
-    FetchContent_GetProperties(imgui-source)
-    if(NOT imgui-source_POPULATED)
-        FetchContent_MakeAvailable(imgui-source)
-    endif()
-    message(STATUS "ImGui-Source dir: ${imgui-source_SOURCE_DIR}")
+    FetchContent_Populate(imgui URL https://github.com/ocornut/imgui/archive/refs/tags/${EVK_INCLUDE_IMGUI_VERSION}.zip QUIET)
+    message(STATUS "ImGui-Source dir: ${imgui_SOURCE_DIR}")
     if(NOT EVK_IS_TOPLEVEL_PROJECT)
-        set(EVK_IMGUI_SOURCE_DIR "${imgui-source_SOURCE_DIR}" PARENT_SCOPE)
+        set(EVK_IMGUI_SOURCE_DIR "${imgui_SOURCE_DIR}" PARENT_SCOPE)
     endif()
     # sources files
-    set(EVK_IMGUI_SOURCES "${imgui-source_SOURCE_DIR}/imgui.cpp" "${imgui-source_SOURCE_DIR}/imgui_widgets.cpp" "${imgui-source_SOURCE_DIR}/imgui_draw.cpp" 
-        "${imgui-source_SOURCE_DIR}/imgui_tables.cpp" "${imgui-source_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp")
+    set(EVK_IMGUI_SOURCES "${imgui_SOURCE_DIR}/imgui.cpp" "${imgui_SOURCE_DIR}/imgui_widgets.cpp" "${imgui_SOURCE_DIR}/imgui_draw.cpp" 
+        "${imgui_SOURCE_DIR}/imgui_tables.cpp" "${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp")
 
-    source_group(TREE "${imgui-source_SOURCE_DIR}" PREFIX "ImGui (External)" FILES ${EVK_IMGUI_SOURCES})
+    source_group(TREE "${imgui_SOURCE_DIR}" PREFIX "ImGui (External)" FILES ${EVK_IMGUI_SOURCES})
     # target
     target_sources(${PROJECT_NAME} PUBLIC FILE_SET CXX_MODULES BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src" FILES "src/imgui_backend.cppm" PRIVATE "src/imgui_backend.cpp" ${EVK_IMGUI_SOURCES})
-    target_include_directories(${PROJECT_NAME} PUBLIC "${imgui-source_SOURCE_DIR}")# "${imgui-source_SOURCE_DIR}/backends")
+    target_include_directories(${PROJECT_NAME} PUBLIC "${imgui_SOURCE_DIR}")# "${imgui_SOURCE_DIR}/backends")
     
     target_compile_definitions(${PROJECT_NAME} PRIVATE "IMGUI_IMPL_API="  INTERFACE "IMGUI_IMPL_API=")
     if(WIN32)
@@ -137,8 +127,8 @@ if(EVK_BUILD_EXAMPLES)
     add_target(ray_query_triangle DEPS ${PROJECT_NAME} glfw SOURCES "examples/ray_query_triangle/main.cpp" "examples/ray_query_triangle/shaders.h" "examples/ray_query_triangle/triangle.comp")
     add_target(headless_ray_query_triangle DEPS ${PROJECT_NAME} SOURCES "examples/headless_ray_query_triangle/main.cpp" "examples/headless_ray_query_triangle/shaders.h" "examples/headless_ray_query_triangle/triangle.comp")
     if(EVK_INCLUDE_IMGUI_BACKEND) 
-        set(EVK_IMGUI_BACKEND_SOURCES "${imgui-source_SOURCE_DIR}/backends/imgui_impl_glfw.cpp")
-        source_group(TREE "${imgui-source_SOURCE_DIR}" PREFIX "ImGui (External)" FILES ${EVK_IMGUI_BACKEND_SOURCES})
+        set(EVK_IMGUI_BACKEND_SOURCES "${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp")
+        source_group(TREE "${imgui_SOURCE_DIR}" PREFIX "ImGui (External)" FILES ${EVK_IMGUI_BACKEND_SOURCES})
         add_target(imgui_rasterizer_triangle DEPS ${PROJECT_NAME} glfw SOURCES "examples/imgui_rasterizer_triangle/main.cpp" "examples/imgui_rasterizer_triangle/shaders.h" "examples/imgui_rasterizer_triangle/triangle.vert" "examples/imgui_rasterizer_triangle/triangle.frag" ${EVK_IMGUI_BACKEND_SOURCES})
     endif()
     
