@@ -36,11 +36,12 @@ Device::Device(
     void* pNext
 ) : vk::raii::Device{ nullptr }, physicalDevice{ physicalDevice }, memoryProperties{ physicalDevice.getMemoryProperties() }
 {
-    const auto prop = physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceSubgroupProperties, vk::PhysicalDeviceRayTracingPipelinePropertiesKHR, vk::PhysicalDeviceAccelerationStructurePropertiesKHR>();
+    const auto prop = physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceSubgroupProperties, vk::PhysicalDeviceRayTracingPipelinePropertiesKHR, vk::PhysicalDeviceAccelerationStructurePropertiesKHR, vk::PhysicalDeviceDescriptorBufferPropertiesEXT>();
     properties = prop.get<vk::PhysicalDeviceProperties2>().properties;
     subgroupProperties = prop.get<vk::PhysicalDeviceSubgroupProperties>();
     rayTracingPipelineProperties = prop.get<vk::PhysicalDeviceRayTracingPipelinePropertiesKHR>();
     accelerationStructureProperties = prop.get<vk::PhysicalDeviceAccelerationStructurePropertiesKHR>();
+	descriptorBufferProperties = prop.get<vk::PhysicalDeviceDescriptorBufferPropertiesEXT>();
 
     constexpr float priority = 1.0f;
     std::vector<vk::DeviceQueueCreateInfo> deviceQueueCreateInfos;

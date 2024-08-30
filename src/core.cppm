@@ -90,6 +90,7 @@ export namespace evk
         vk::PhysicalDeviceSubgroupProperties subgroupProperties;
         vk::PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
         vk::PhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties;
+		vk::PhysicalDeviceDescriptorBufferPropertiesEXT descriptorBufferProperties;
         // has
         bool hasAccelerationStructureActive = false;
     };
@@ -171,6 +172,9 @@ export namespace evk
             const std::shared_ptr<Device>& device,
             const Bindings& bindings
         );
+
+        EVK_API vk::DeviceSize sizeInBytes() const { return layout.getSizeEXT(); }
+        EVK_API vk::DeviceSize bindingOffsetInBytes(const uint32_t binding) const { return layout.getBindingOffsetEXT(binding); }
 
         EVK_API operator const vk::DescriptorSetLayout& () const { return *layout; }
 
