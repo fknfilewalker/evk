@@ -6,6 +6,7 @@ module;
 #include <string_view>
 #include <variant>
 #include <map>
+#include <stdexcept>
 #include <utility>
 export module evk:core;
 import :utils;
@@ -13,6 +14,11 @@ import vulkan_hpp;
 
 export namespace evk
 {
+    EVK_API void checkResult(vk::Result result, const char* message)
+    {
+        if (result != vk::Result::eSuccess) throw std::runtime_error(message);
+    }
+
     EVK_API const vk::raii::Context& context()
     {
 	    static const vk::raii::Context ctx;
@@ -330,19 +336,19 @@ export namespace evk
             frames.reserve(imageCount);
             for (uint32_t i = 0; i < imageCount; ++i) frames.emplace_back(*dev, images[i], createInfo.imageFormat, commandBuffers[i]);
         }
-        EVK_API ~Swapchain() { for (auto& frame : frames) resultCheck(dev->waitForFences({ *frame.inFlightFence, *frame.submitFence }, vk::True, UINT64_MAX), "waiting for fence error"); }
+        EVK_API ~Swapchain() { for (auto& frame : frames) checkResult(dev->waitForFences({ *frame.inFlightFence, *frame.submitFence }, vk::True, UINT64_MAX), "waiting for fence error"); }
 
         EVK_API void acquireNextImage() {
             const Frame& oldFrame = getCurrentFrame();
-            resultCheck(dev->waitForFences(*oldFrame.inFlightFence, vk::True, UINT64_MAX), "waiting for fence error");
+            checkResult(dev->waitForFences(*oldFrame.inFlightFence, vk::True, UINT64_MAX), "waiting for fence error");
             dev->resetFences(*oldFrame.inFlightFence);
             const std::pair<vk::Result, uint32_t> nextImage = swapchainKHR.acquireNextImage(0, *oldFrame.nextImageAvailableSemaphore, *oldFrame.inFlightFence);
-            resultCheck(nextImage.first, "acquiring next swapchain image error");
+            checkResult(nextImage.first, "acquiring next swapchain image error");
             previousImageIdx = currentImageIdx;
             currentImageIdx = nextImage.second;
 
             const Frame& newFrame = getCurrentFrame();
-            resultCheck(dev->waitForFences(*newFrame.submitFence, vk::True, UINT64_MAX), "waiting for fence error");
+            checkResult(dev->waitForFences(*newFrame.submitFence, vk::True, UINT64_MAX), "waiting for fence error");
             dev->resetFences(*newFrame.submitFence);
             newFrame.commandBuffer.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
         }
@@ -353,7 +359,7 @@ export namespace evk
 
             presentQueue.submit(vk::SubmitInfo{ *getPreviousFrame().nextImageAvailableSemaphore, waitDstStageMask,
                 *curFrame.commandBuffer, *curFrame.renderFinishedSemaphore }, curFrame.submitFence);
-            resultCheck(presentQueue.presentKHR({ *curFrame.renderFinishedSemaphore, *swapchainKHR, currentImageIdx }), "present swapchain image error");
+            checkResult(presentQueue.presentKHR({ *curFrame.renderFinishedSemaphore, *swapchainKHR, currentImageIdx }), "present swapchain image error");
         }
 
         EVK_API const Frame& getCurrentFrame() { return frames[currentImageIdx]; }
