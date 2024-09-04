@@ -160,6 +160,31 @@ export namespace evk
         vk::ImageLayout layout;
     };
 
+    struct MutableDescriptorSetLayout : Resource
+    {
+        EVK_API MutableDescriptorSetLayout() : Resource{ nullptr }, layout{ nullptr } {}
+        EVK_API MutableDescriptorSetLayout(
+            const std::shared_ptr<Device>& device,
+            const size_t count,
+			const vk::ShaderStageFlags stages = vk::ShaderStageFlagBits::eAll,
+            const vk::DescriptorBindingFlags bindingFlags = {},
+			const vk::DescriptorSetLayoutCreateFlags layoutCreateFlags = {},
+			const std::vector<vk::DescriptorType>& descriptorTypes = { vk::DescriptorType::eSampler, vk::DescriptorType::eCombinedImageSampler }
+        ) : Resource{ device }, layout{ nullptr }
+        {
+            vk::MutableDescriptorTypeListEXT mutableTypes{ descriptorTypes };
+            vk::MutableDescriptorTypeCreateInfoEXT mutableCreateInfo{ mutableTypes };
+        	vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCreateInfo{ { bindingFlags }, &mutableCreateInfo };
+
+        	vk::DescriptorSetLayoutBinding layoutBinding{ 0, vk::DescriptorType::eMutableEXT, 1, stages };
+            const vk::DescriptorSetLayoutCreateInfo layoutCreateInfo{ layoutCreateFlags, layoutBinding, &bindingFlagsCreateInfo };
+            layout = vk::raii::DescriptorSetLayout{ *dev, layoutCreateInfo };
+        }
+
+        EVK_API operator const vk::DescriptorSetLayout& () const { return *layout; }
+        vk::raii::DescriptorSetLayout layout;
+    };
+
     struct DescriptorSetLayout : Resource
     {
         struct Binding : std::pair<vk::DescriptorSetLayoutBinding, vk::DescriptorBindingFlags>
