@@ -162,27 +162,53 @@ export namespace evk
 
     struct MutableDescriptorSetLayout : Resource
     {
-        EVK_API MutableDescriptorSetLayout() : Resource{ nullptr }, layout{ nullptr } {}
+        EVK_API MutableDescriptorSetLayout() : Resource{ nullptr }, layout{ nullptr }, descriptorCount{ 0 } {}
         EVK_API MutableDescriptorSetLayout(
             const std::shared_ptr<Device>& device,
-            const size_t count,
+            const uint32_t descriptorCount,
 			const vk::ShaderStageFlags stages = vk::ShaderStageFlagBits::eAll,
             const vk::DescriptorBindingFlags bindingFlags = {},
 			const vk::DescriptorSetLayoutCreateFlags layoutCreateFlags = {},
-			const std::vector<vk::DescriptorType>& descriptorTypes = { vk::DescriptorType::eSampler, vk::DescriptorType::eCombinedImageSampler }
-        ) : Resource{ device }, layout{ nullptr }
+			const std::vector<vk::DescriptorType>& descriptorTypes = { vk::DescriptorType::eSampler, vk::DescriptorType::eCombinedImageSampler, vk::DescriptorType::eSampledImage, vk::DescriptorType::eStorageImage, vk::DescriptorType::eUniformTexelBuffer, vk::DescriptorType::eStorageTexelBuffer, vk::DescriptorType::eUniformBuffer, vk::DescriptorType::eStorageBuffer }
+        ) : Resource{ device }, layout{ nullptr }, descriptorCount{ descriptorCount }
         {
             vk::MutableDescriptorTypeListEXT mutableTypes{ descriptorTypes };
             vk::MutableDescriptorTypeCreateInfoEXT mutableCreateInfo{ mutableTypes };
         	vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCreateInfo{ { bindingFlags }, &mutableCreateInfo };
 
-        	vk::DescriptorSetLayoutBinding layoutBinding{ 0, vk::DescriptorType::eMutableEXT, 1, stages };
+        	vk::DescriptorSetLayoutBinding layoutBinding{ 0, vk::DescriptorType::eMutableEXT, descriptorCount, stages };
             const vk::DescriptorSetLayoutCreateInfo layoutCreateInfo{ layoutCreateFlags, layoutBinding, &bindingFlagsCreateInfo };
             layout = vk::raii::DescriptorSetLayout{ *dev, layoutCreateInfo };
         }
 
         EVK_API operator const vk::DescriptorSetLayout& () const { return *layout; }
         vk::raii::DescriptorSetLayout layout;
+		uint32_t descriptorCount;
+    };
+
+    struct MutableDescriptorSet : Resource
+    {
+        EVK_API MutableDescriptorSet() : Resource{ nullptr }, pool{ nullptr }, set{ nullptr } {}
+        EVK_API MutableDescriptorSet(
+            const std::shared_ptr<Device>& device,
+            const MutableDescriptorSetLayout& layout,
+            const vk::DescriptorPoolCreateFlags& poolFlags = {},
+			const void* pNext = nullptr
+        ) : Resource{ device }, pool{ nullptr }, set{ nullptr }
+        {
+			// pool
+	        const vk::DescriptorPoolSize poolSize { vk::DescriptorType::eMutableEXT, layout.descriptorCount };
+            const vk::DescriptorPoolCreateInfo descPoolInfo{ poolFlags, 1, poolSize };
+            pool = vk::raii::DescriptorPool{ *dev, descPoolInfo };
+            // set
+            //const vk::DescriptorSetVariableDescriptorCountAllocateInfo varDescCountAllocInfo = { 1, &bindings.back().first.descriptorCount };
+            const vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo{ *pool, *layout.layout, nullptr };
+            set = dev->allocateDescriptorSets(descriptorSetAllocateInfo)[0].release();
+        }
+        EVK_API operator const vk::DescriptorSet& () const { return set; }
+
+        vk::raii::DescriptorPool pool;
+        vk::DescriptorSet set;
     };
 
     struct DescriptorSetLayout : Resource
