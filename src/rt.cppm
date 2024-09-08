@@ -113,6 +113,7 @@ export namespace evk::rt {
 
 	struct BottomLevelAccelerationStructure
 	{
+		EVK_API BottomLevelAccelerationStructure() : accelerationStructure{nullptr}, deviceAddress{0} {}
 		EVK_API BottomLevelAccelerationStructure(
 	        const std::shared_ptr<evk::Device>& device,
 	        const vk::raii::CommandBuffer& cb,
@@ -176,6 +177,7 @@ export namespace evk::rt {
 
 	struct TopLevelAccelerationStructure
 	{
+		EVK_API TopLevelAccelerationStructure() : accelerationStructure{ nullptr }, deviceAddress{ 0 } {}
 		EVK_API TopLevelAccelerationStructure(
 	        const std::shared_ptr<evk::Device>& device,
 	        const vk::raii::CommandBuffer& cb,
