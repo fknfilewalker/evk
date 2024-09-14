@@ -1,4 +1,5 @@
 module;
+#include <imgui.h>
 #include <vector>
 #include <memory>
 #include <string_view>
@@ -9,6 +10,7 @@ export namespace evk
 {
 	struct ImGuiBackend : Resource
 	{
+		EVK_API ImGuiBackend() : sampler{nullptr} {};
 		EVK_API ImGuiBackend(
 			const std::shared_ptr<Device>& device,
 			uint32_t imageCount
@@ -18,6 +20,8 @@ export namespace evk
 			std::string_view filepath = "",
 			float scaleFactor = 1.0f
 		);
+
+		EVK_API static void setContext(ImGuiContext* ctx);
 
 		EVK_API void render(
 			const vk::raii::CommandBuffer& cb, 
