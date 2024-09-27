@@ -1,8 +1,10 @@
 module;
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <vector>
+#include <cstring>
 module evk;
 import :rt;
 using namespace evk::rt;

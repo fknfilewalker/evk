@@ -3,6 +3,7 @@ module;
 #include <bitset>
 #include <optional>
 #include <functional>
+#include <stdint.h>
 module evk;
 import :utils;
 using namespace evk;

@@ -3,6 +3,7 @@ module;
 #include <vector>
 #include <optional>
 #include <stdexcept>
+#include <cstring>
 export module evk:rt;
 import :core;
 import :utils;
