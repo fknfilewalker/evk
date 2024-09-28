@@ -3,6 +3,7 @@ module;
 #include <stdexcept>
 #include <memory>
 #include <string_view>
+#include <vector>
 module evk.imgui;
 import evk;
 

@@ -4,6 +4,8 @@ module;
 #include <stdexcept>
 #include <vector>
 #include <variant>
+#include <memory>
+#include <cstring>
 module evk;
 import :core;
 import :utils;
