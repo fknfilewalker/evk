@@ -20,10 +20,11 @@ void main(){
     const float RATIO = WIDTH / HEIGHT;
     const vec4 S = vec4(-1.0, 1.0, 1.0, -1.0); // Screen: left, top, right, bottom
     const vec2 PIXELSIZE = vec2((S[2] - S[0]) / WIDTH, (S[3] - S[1]) / HEIGHT);
+    const vec2 PIXELSIZE_HALF = PIXELSIZE / 2.0;
 
     const vec3 EYE = vec3(0.0, 0.0, -1.0);
     const float SENSOR_OFFSET_Z = 0.0;
-    const vec3 PIXEL = vec3(S[0] + PIXELSIZE.x * float(id.x), S[1] + PIXELSIZE.y * float(id.y), SENSOR_OFFSET_Z);
+    const vec3 PIXEL = vec3(S[0] + PIXELSIZE.x * float(id.x) + PIXELSIZE_HALF.x, S[1] + PIXELSIZE.y * float(id.y) + PIXELSIZE_HALF.y, SENSOR_OFFSET_Z);
     const vec3 DIR = normalize(PIXEL - EYE);
 
     rayQueryEXT rayQuery;
