@@ -177,13 +177,14 @@ int main(int /*argc*/, char** /*argv*/)
         imageMemoryBarrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
         cb.pipelineBarrier2(dependencyInfo);
 
+        auto region = vk::ImageCopy2{}.setExtent(vk::Extent3D{ target.width, target.height, 1 })
+            .setSrcSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 })
+            .setDstSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 });
         auto copy_info = vk::CopyImageInfo2KHR{}
             .setSrcImage(src_image.image).setSrcImageLayout(vk::ImageLayout::eTransferSrcOptimal)
             .setDstImage(cFrame.image).setDstImageLayout(vk::ImageLayout::eTransferDstOptimal)
-			.setRegions(vk::ImageCopy2{}.setExtent(vk::Extent3D{target.width, target.height, 1})
-			.setSrcSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 })
-            .setDstSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 }));
-		cb.copyImage2(copy_info);
+            .setRegions(region);
+        cb.copyImage2(copy_info);
 
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
         imageMemoryBarrier.newLayout = vk::ImageLayout::eGeneral;
