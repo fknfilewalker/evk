@@ -23,7 +23,7 @@ struct InOut {
 };
 
 [shader("vertex")]
-InOut vertex(In input)
+InOut vertexMain(In input)
 {
     InOut output;
     output.Color = input.Color;
@@ -35,7 +35,7 @@ InOut vertex(In input)
 [vk::binding(0, 0)] Sampler2D sTexture;
 
 [shader("fragment")]
-float4 fragment(InOut input) : SV_Target
+float4 fragmentMain(InOut input) : SV_Target
 {
     return input.Color * sTexture.Sample(input.UV);
 }
