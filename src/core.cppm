@@ -4,6 +4,7 @@ module;
 #include <unordered_map>
 #include <vector>
 #include <string_view>
+#include <deque>
 #include <variant>
 #include <map>
 #include <stdexcept>
@@ -363,68 +364,75 @@ export namespace evk
     {
         // Data for one frame/image in our swapchain
         struct Frame {
-            EVK_API Frame(const vk::raii::Device& device, const vk::Image& image, const vk::Format format, vk::raii::CommandBuffer& commandBuffer) : image{ image }, imageView{ nullptr },
-                inFlightFence{ device, vk::FenceCreateInfo{ vk::FenceCreateFlagBits::eSignaled } }, submitFence{ device, vk::FenceCreateInfo{ vk::FenceCreateFlagBits::eSignaled } },
-        		nextImageAvailableSemaphore{ device, vk::SemaphoreCreateInfo{} }, renderFinishedSemaphore{ device, vk::SemaphoreCreateInfo{} }, commandBuffer{ std::move(commandBuffer) }
-            {
-                imageView = vk::raii::ImageView{ device, vk::ImageViewCreateInfo{ {}, image, vk::ImageViewType::e2D, format,
-                    {}, { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 } } };
-            }
-            vk::Image image;
-            vk::raii::ImageView imageView;
-            vk::raii::Fence inFlightFence, submitFence;
-            vk::raii::Semaphore nextImageAvailableSemaphore /* refers to the next frame */, renderFinishedSemaphore /* refers to current frame */;
+            EVK_API Frame(const vk::raii::Device& device, const vk::raii::CommandPool& commandPool) :
+                presentFinishFence{ device, vk::FenceCreateInfo{} }, imageAvailableSemaphore{ device, vk::SemaphoreCreateInfo{} }, renderFinishedSemaphore{ device, vk::SemaphoreCreateInfo{} },
+                commandBuffer{ std::move(vk::raii::CommandBuffers{ device, { *commandPool, vk::CommandBufferLevel::ePrimary, 1 } }[0]) }
+            {}
+            vk::raii::Fence presentFinishFence;
+            vk::raii::Semaphore imageAvailableSemaphore, renderFinishedSemaphore;
             vk::raii::CommandBuffer commandBuffer;
         };
 
-        EVK_API Swapchain() : Resource{ nullptr }, currentImageIdx{ 0 }, previousImageIdx{ 0 }, imageCount{ 0 }, extent{ 0, 0 }, swapchainKHR{ nullptr }, commandPool{ nullptr } {}
         EVK_API Swapchain(const std::shared_ptr<Device>& device, const vk::SwapchainCreateInfoKHR& createInfo, const uint32_t queueFamilyIndex) : Resource{ device }, currentImageIdx{ 0 }, previousImageIdx{ 0 },
-            swapchainKHR{ nullptr }, commandPool{ *dev, { vk::CommandPoolCreateFlagBits::eResetCommandBuffer, queueFamilyIndex } }
+            swapchain{ nullptr }, commandPool{ *dev, { vk::CommandPoolCreateFlagBits::eTransient, queueFamilyIndex } }
         {
-            imageCount = createInfo.minImageCount;
-            extent = createInfo.imageExtent;
-            swapchainKHR = vk::raii::SwapchainKHR{ *dev, createInfo };
-
-            currentImageIdx = imageCount - 1u; // just for init
-            auto commandBuffers = vk::raii::CommandBuffers{ *dev, { *commandPool, vk::CommandBufferLevel::ePrimary, imageCount } };
-            const std::vector<vk::Image> images = swapchainKHR.getImages();
-            frames.reserve(imageCount);
-            for (uint32_t i = 0; i < imageCount; ++i) frames.emplace_back(*dev, images[i], createInfo.imageFormat, commandBuffers[i]);
+            swapchainCreateInfo = createInfo;
+            currentImageIdx = swapchainCreateInfo.minImageCount - 1u; // just for init
+            createSwapchain();
         }
-        EVK_API ~Swapchain() { for (auto& frame : frames) checkResult(dev->waitForFences({ *frame.inFlightFence, *frame.submitFence }, vk::True, UINT64_MAX), "waiting for fence error"); }
+
+        EVK_API void createSwapchain() {
+            const auto surfaceCapabilities = dev->physicalDevice.getSurfaceCapabilitiesKHR(swapchainCreateInfo.surface);
+            swapchainCreateInfo.imageExtent = surfaceCapabilities.currentExtent;
+            swapchainCreateInfo.oldSwapchain = *swapchain;
+            swapchain = vk::raii::SwapchainKHR{ *dev, swapchainCreateInfo };
+            images = swapchain.getImages();
+            views.clear(); for (const auto& image : images) views.emplace_back(nullptr);
+        }
+
+        EVK_API Frame& acquireNewFrame() {
+            for (auto it = frames.begin(); it != frames.end(); (it->presentFinishFence.getStatus() == vk::Result::eSuccess) ? it = frames.erase(it) : ++it) {}
+            frames.emplace_back(*dev, commandPool); // create a new frame
+            return frames.back();
+        }
 
         EVK_API void acquireNextImage() {
-            const Frame& oldFrame = getCurrentFrame();
-            checkResult(dev->waitForFences(*oldFrame.inFlightFence, vk::True, UINT64_MAX), "waiting for fence error");
-            dev->resetFences(*oldFrame.inFlightFence);
-            const std::pair<vk::Result, uint32_t> nextImage = swapchainKHR.acquireNextImage(0, *oldFrame.nextImageAvailableSemaphore, *oldFrame.inFlightFence);
-            checkResult(nextImage.first, "acquiring next swapchain image error");
-            previousImageIdx = currentImageIdx;
-            currentImageIdx = nextImage.second;
-
-            const Frame& newFrame = getCurrentFrame();
-            checkResult(dev->waitForFences(*newFrame.submitFence, vk::True, UINT64_MAX), "waiting for fence error");
-            dev->resetFences(*newFrame.submitFence);
-            newFrame.commandBuffer.reset(); // fix memory leak wtf??
-            newFrame.commandBuffer.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+            auto& frame = acquireNewFrame();
+            try {
+                currentImageIdx = swapchain.acquireNextImage(UINT64_MAX, *frame.imageAvailableSemaphore).second;
+            }
+            catch (const vk::OutOfDateKHRError&) { createSwapchain(); acquireNextImage(); return; } // unix
+            /* create image view after image is acquired because of vk::SwapchainCreateFlagBitsKHR::eDeferredMemoryAllocationEXT */
+            if (not *views[currentImageIdx]) {
+                views[currentImageIdx] = vk::raii::ImageView{ *dev, vk::ImageViewCreateInfo{ {}, images[currentImageIdx], vk::ImageViewType::e2D,
+                    swapchainCreateInfo.imageFormat, {}, { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 } } };
+            }
+            frame.commandBuffer.begin({});
         }
 
         EVK_API void submitImage(const vk::raii::Queue& presentQueue, const vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eNone) {
-            const Frame& curFrame = getCurrentFrame();
-            curFrame.commandBuffer.end();
+            auto& frame = frames.back();
+            frame.commandBuffer.end();
 
-            presentQueue.submit(vk::SubmitInfo{ *getPreviousFrame().nextImageAvailableSemaphore, waitDstStageMask,
-                *curFrame.commandBuffer, *curFrame.renderFinishedSemaphore }, curFrame.submitFence);
-            checkResult(presentQueue.presentKHR({ *curFrame.renderFinishedSemaphore, *swapchainKHR, currentImageIdx }), "present swapchain image error");
+            presentQueue.submit(vk::SubmitInfo{ *frame.imageAvailableSemaphore,
+                { waitDstStageMask },* frame.commandBuffer,* frame.renderFinishedSemaphore });
+            vk::SwapchainPresentFenceInfoEXT presentFenceInfo{ *frame.presentFinishFence };
+            try { auto _ = presentQueue.presentKHR({ *frame.renderFinishedSemaphore, *swapchain, currentImageIdx, {}, &presentFenceInfo }); }
+            catch (const vk::OutOfDateKHRError&) { presentQueue.waitIdle(); frames.clear(); createSwapchain(); } // win32
         }
 
-        EVK_API const Frame& getCurrentFrame() { return frames[currentImageIdx]; }
-        EVK_API const Frame& getPreviousFrame() { return frames[previousImageIdx]; }
+        EVK_API Frame& getCurrentFrame() { return frames.back(); }
+        EVK_API vk::Image& getCurrentImage() { return images[currentImageIdx]; }
+        EVK_API vk::raii::ImageView& getCurrentImageView() { return views[currentImageIdx]; }
+        EVK_API [[nodiscard]] const vk::Extent2D& extent() const { return swapchainCreateInfo.imageExtent; }
+        EVK_API [[nodiscard]] uint32_t imageCount() const { return swapchainCreateInfo.minImageCount; }
 
-        vk::Extent2D extent;
-        uint32_t imageCount, currentImageIdx, previousImageIdx;
-        vk::raii::SwapchainKHR swapchainKHR;
+        vk::SwapchainCreateInfoKHR swapchainCreateInfo;
+        uint32_t currentImageIdx, previousImageIdx;
+        vk::raii::SwapchainKHR swapchain;
+        std::vector<vk::Image> images;
+        std::vector<vk::raii::ImageView> views;
         vk::raii::CommandPool commandPool;
-        std::vector<Frame> frames;
+        std::deque<Frame> frames;
     };
 }

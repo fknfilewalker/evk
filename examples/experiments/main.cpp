@@ -136,7 +136,7 @@ int main(int /*argc*/, char** /*argv*/)
 		descriptorSets.emplace_back(device, evk::DescriptorSet::Bindings{
             { { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eAll } }
 		});
-		descriptorSets.back().setDescriptor(0, vk::DescriptorImageInfo{ {}, frame.imageView, vk::ImageLayout::eGeneral });
+		descriptorSets.back().setDescriptor(0, vk::DescriptorImageInfo{ {}, swapchain.getCurrentImageView(), vk::ImageLayout::eGeneral });
 		descriptorSets.back().update();
 	}
 
@@ -163,13 +163,13 @@ int main(int /*argc*/, char** /*argv*/)
         const auto& cFrame = swapchain.getCurrentFrame();
         const auto& cmdBuffer = cFrame.commandBuffer;
 
-        imageMemoryBarrier.image = cFrame.image;
+        imageMemoryBarrier.image = swapchain.getCurrentImage();
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eUndefined;
         imageMemoryBarrier.newLayout = vk::ImageLayout::eTransferDstOptimal;
         cmdBuffer.pipelineBarrier2(dependencyInfo);
 
         {
-            cmdBuffer.clearColorImage(cFrame.image, vk::ImageLayout::eTransferDstOptimal, vk::ClearColorValue{ std::array{ 0.0f, 0.0f, 0.0f, 1.0f } }, { { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 } });
+            cmdBuffer.clearColorImage(swapchain.getCurrentImage(), vk::ImageLayout::eTransferDstOptimal, vk::ClearColorValue{ std::array{ 0.0f, 0.0f, 0.0f, 1.0f } }, { { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 } });
             cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shader.layout, 0, { descriptorSets[swapchain.currentImageIdx] }, {});
             cmdBuffer.bindShadersEXT(shader.stages, shader.shaders);
             cmdBuffer.pushConstants<uint64_t>(*shader.layout, vk::ShaderStageFlagBits::eCompute, 0, tlas.deviceAddress);

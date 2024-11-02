@@ -26,7 +26,7 @@ int main(int /*argc*/, char** /*argv*/)
     GLFWwindow* window = glfwCreateWindow(target.width, target.height, "Vulkan Ray Query", nullptr, nullptr);
 
     // Instance Setup
-    std::vector iExtensions{ vk::KHRSurfaceExtensionName, vk::KHRGetSurfaceCapabilities2ExtensionName };
+    std::vector iExtensions{ vk::KHRSurfaceExtensionName, vk::EXTSurfaceMaintenance1ExtensionName, vk::KHRGetSurfaceCapabilities2ExtensionName };
     if (evk::isWindows) iExtensions.emplace_back("VK_KHR_win32_surface");
     if (evk::isApple) iExtensions.emplace_back("VK_EXT_metal_surface");
 
@@ -57,7 +57,8 @@ int main(int /*argc*/, char** /*argv*/)
     // * check extensions
     std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName, vk::KHRDynamicRenderingExtensionName,
         vk::KHRRayQueryExtensionName, vk::KHRAccelerationStructureExtensionName, vk::KHRDeferredHostOperationsExtensionName,
-        vk::KHRFormatFeatureFlags2ExtensionName, vk::KHRSynchronization2ExtensionName, vk::KHRMaintenance4ExtensionName, vk::EXTHostImageCopyExtensionName };
+        vk::KHRFormatFeatureFlags2ExtensionName, vk::KHRSynchronization2ExtensionName, vk::KHRMaintenance4ExtensionName, vk::EXTHostImageCopyExtensionName,
+        vk::EXTSwapchainMaintenance1ExtensionName };
     if constexpr (evk::isApple) dExtensions.emplace_back("VK_KHR_portability_subset");
 
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
@@ -125,8 +126,8 @@ int main(int /*argc*/, char** /*argv*/)
     // Descriptor set setup
     std::vector<evk::Image> images;
     std::vector<evk::DescriptorSet> descriptorSets;
-    descriptorSets.reserve(swapchain.frames.size());
-    for (const auto& frame : swapchain.frames) {
+    descriptorSets.reserve(swapchain.imageCount());
+    for (uint32_t i = 0; i < swapchain.imageCount(); i++) {
         images.emplace_back(device, vk::Extent3D{ target.width, target.height, 1 }, sFormat.value().format, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eDeviceLocal);
         images.back().transitionLayout(vk::ImageLayout::eGeneral);
@@ -168,7 +169,7 @@ int main(int /*argc*/, char** /*argv*/)
         }
 
         evk::Image& src_image = images[swapchain.currentImageIdx];
-        imageMemoryBarrier.image = cFrame.image;
+        imageMemoryBarrier.image = swapchain.getCurrentImage();
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eUndefined;
         imageMemoryBarrier.newLayout = vk::ImageLayout::eTransferDstOptimal;
         cb.pipelineBarrier2(dependencyInfo);
@@ -182,14 +183,14 @@ int main(int /*argc*/, char** /*argv*/)
             .setDstSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 });
         auto copy_info = vk::CopyImageInfo2KHR{}
             .setSrcImage(src_image.image).setSrcImageLayout(vk::ImageLayout::eTransferSrcOptimal)
-            .setDstImage(cFrame.image).setDstImageLayout(vk::ImageLayout::eTransferDstOptimal)
+            .setDstImage(swapchain.getCurrentImage()).setDstImageLayout(vk::ImageLayout::eTransferDstOptimal)
             .setRegions(region);
         cb.copyImage2(copy_info);
 
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
         imageMemoryBarrier.newLayout = vk::ImageLayout::eGeneral;
         cb.pipelineBarrier2(dependencyInfo);
-        imageMemoryBarrier.image = cFrame.image;
+        imageMemoryBarrier.image = swapchain.getCurrentImage();
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
         imageMemoryBarrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
         cb.pipelineBarrier2(dependencyInfo);

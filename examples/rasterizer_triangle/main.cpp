@@ -20,11 +20,11 @@ int main(int /*argc*/, char** /*argv*/)
 {
 	if (!glfwInit()) exitWithError("Failed to init GLFW");
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // No need to create a graphics context for Vulkan
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     GLFWwindow* window = glfwCreateWindow(target.width, target.height, "Vulkan Rasterizer", nullptr, nullptr);
 
     // Instance Setup
-    std::vector iExtensions{ vk::KHRSurfaceExtensionName, vk::KHRGetSurfaceCapabilities2ExtensionName };
+    std::vector iExtensions{ vk::KHRSurfaceExtensionName, vk::EXTSurfaceMaintenance1ExtensionName, vk::KHRGetSurfaceCapabilities2ExtensionName };
     if(evk::isWindows) iExtensions.emplace_back("VK_KHR_win32_surface");
 	if(evk::isApple) {
         iExtensions.emplace_back("VK_EXT_metal_surface");
@@ -62,13 +62,14 @@ int main(int /*argc*/, char** /*argv*/)
     if (!queueFamilyIndex.has_value()) exitWithError("No queue family index found");
     if (!physicalDevice.getSurfaceSupportKHR(queueFamilyIndex.value(), surface)) exitWithError("Queue family does not support presentation");
     // * check extensions
-    std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName, vk::KHRDynamicRenderingExtensionName, vk::KHRSynchronization2ExtensionName };
+    std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName, vk::KHRDynamicRenderingExtensionName, vk::KHRSynchronization2ExtensionName, vk::EXTSwapchainMaintenance1ExtensionName };
     if constexpr (evk::isApple) dExtensions.emplace_back("VK_KHR_portability_subset");
 
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
     // * activate features
     vk::PhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ true };
-    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &bufferDeviceAddressFeatures };
+    vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT swapchainMaintenance{ true, &bufferDeviceAddressFeatures };
+    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &swapchainMaintenance };
     vk::PhysicalDeviceSynchronization2Features synchronization2Features{ true, &shaderObjectFeatures };
     vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{ true, &synchronization2Features };
     vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &dynamicRenderingFeatures };
@@ -99,7 +100,7 @@ int main(int /*argc*/, char** /*argv*/)
     // Swapchain setup
     const auto sCapabilities = device->physicalDevice.getSurfaceCapabilitiesKHR(*surface);
     const auto sFormats = device->physicalDevice.getSurfaceFormatsKHR(*surface);
-    const vk::SwapchainCreateInfoKHR swapchainCreateInfo{ {}, *surface, evk::utils::clampSwapchainImageCount(2u, sCapabilities),
+    const vk::SwapchainCreateInfoKHR swapchainCreateInfo{ vk::SwapchainCreateFlagBitsKHR::eDeferredMemoryAllocationEXT, *surface, evk::utils::clampSwapchainImageCount(2u, sCapabilities),
                 sFormats[0].format, sFormats[0].colorSpace, sCapabilities.currentExtent, 1u, vk::ImageUsageFlagBits::eColorAttachment };
     evk::Swapchain swapchain{ device, swapchainCreateInfo, queueFamilyIndex.value() };
     vk::ImageMemoryBarrier2 imageMemoryBarrier{};
@@ -114,16 +115,16 @@ int main(int /*argc*/, char** /*argv*/)
         const auto& cFrame = swapchain.getCurrentFrame();
         const auto& cb = cFrame.commandBuffer;
 
-        imageMemoryBarrier.image = cFrame.image;
+        imageMemoryBarrier.image = swapchain.getCurrentImage();
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eUndefined;
         imageMemoryBarrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
         cb.pipelineBarrier2(dependencyInfo);
 
-        vk::RenderingAttachmentInfo rAttachmentInfo{ *cFrame.imageView, vk::ImageLayout::eColorAttachmentOptimal };
+        vk::RenderingAttachmentInfo rAttachmentInfo{ *swapchain.getCurrentImageView(), vk::ImageLayout::eColorAttachmentOptimal };
         rAttachmentInfo.clearValue.color = { 0.0f, 0.0f, 0.0f, 1.0f };
         rAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
         rAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
-        cb.beginRendering({ {}, { {}, swapchain.extent }, 1, 0, 1, &rAttachmentInfo });
+        cb.beginRendering({ {}, { {}, swapchain.extent() }, 1, 0, 1, &rAttachmentInfo });
         {
             /* set render state for shader objects */
             cb.bindShadersEXT(shader.stages, shader.shaders);
@@ -135,8 +136,8 @@ int main(int /*argc*/, char** /*argv*/)
             cb.setColorWriteMaskEXT(0, vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB);
             cb.setSampleMaskEXT(vk::SampleCountFlagBits::e1, { 0xffffffff });
             cb.setRasterizationSamplesEXT(vk::SampleCountFlagBits::e1);
-            cb.setViewportWithCountEXT({ { 0, 0, static_cast<float>(swapchain.extent.width), static_cast<float>(swapchain.extent.height) } });
-            cb.setScissorWithCountEXT({ { { 0, 0 }, swapchain.extent } });
+            cb.setViewportWithCountEXT({ { 0, 0, static_cast<float>(swapchain.extent().width), static_cast<float>(swapchain.extent().height)}});
+            cb.setScissorWithCountEXT({ { { 0, 0 }, swapchain.extent()}});
             cb.setVertexInputEXT({}, {});
             cb.setColorBlendEnableEXT(0, vk::False);
             cb.setDepthTestEnableEXT(vk::False);

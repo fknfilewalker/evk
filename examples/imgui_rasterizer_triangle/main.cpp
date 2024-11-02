@@ -24,11 +24,11 @@ int main(int /*argc*/, char** /*argv*/)
 {
     if (!glfwInit()) exitWithError("Failed to init GLFW");
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // No need to create a graphics context for Vulkan
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     GLFWwindow* window = glfwCreateWindow(window_width, window_height, "Vulkan Rasterizer", nullptr, nullptr);
 
     // Instance Setup
-    std::vector iExtensions{ vk::KHRSurfaceExtensionName, vk::KHRGetSurfaceCapabilities2ExtensionName };
+    std::vector iExtensions{ vk::KHRSurfaceExtensionName, vk::EXTSurfaceMaintenance1ExtensionName, vk::KHRGetSurfaceCapabilities2ExtensionName };
     if(evk::isWindows) iExtensions.emplace_back("VK_KHR_win32_surface");
 	if(evk::isApple) {
         iExtensions.emplace_back("VK_EXT_metal_surface");
@@ -62,7 +62,7 @@ int main(int /*argc*/, char** /*argv*/)
     if (!physicalDevice.getSurfaceSupportKHR(queueFamilyIndex.value(), surface)) exitWithError("Queue family does not support presentation");
     // * check extensions
     std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName, vk::KHRDynamicRenderingExtensionName, vk::KHRSynchronization2ExtensionName,
-    vk::EXTHostImageCopyExtensionName, vk::KHRFormatFeatureFlags2ExtensionName, vk::KHRCopyCommands2ExtensionName };
+    vk::EXTHostImageCopyExtensionName, vk::KHRFormatFeatureFlags2ExtensionName, vk::KHRCopyCommands2ExtensionName, vk::EXTSwapchainMaintenance1ExtensionName };
     if constexpr (evk::isApple) dExtensions.emplace_back("VK_KHR_portability_subset");
 
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
@@ -122,7 +122,7 @@ int main(int /*argc*/, char** /*argv*/)
     ImGui::GetStyle().ScaleAllSizes(scaleFactor);
     ImGui::StyleColorsDark();
 
-    evk::ImGuiBackend imguiBackend{ device, swapchain.imageCount };
+    evk::ImGuiBackend imguiBackend{ device, swapchain.imageCount() };
     imguiBackend.setFont();
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
@@ -142,16 +142,16 @@ int main(int /*argc*/, char** /*argv*/)
         const auto& cFrame = swapchain.getCurrentFrame();
         const auto& cb = cFrame.commandBuffer;
 
-        imageMemoryBarrier.image = cFrame.image;
+        imageMemoryBarrier.image = swapchain.getCurrentImage();
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eUndefined;
         imageMemoryBarrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
         cb.pipelineBarrier2(dependencyInfo);
 
-        vk::RenderingAttachmentInfo rAttachmentInfo{ *cFrame.imageView, vk::ImageLayout::eColorAttachmentOptimal };
+        vk::RenderingAttachmentInfo rAttachmentInfo{ *swapchain.getCurrentImageView(), vk::ImageLayout::eColorAttachmentOptimal };
         rAttachmentInfo.clearValue.color = { 0.0f, 0.0f, 0.0f, 0.0f };
         rAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
         rAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
-        cb.beginRendering({ {}, { {}, swapchain.extent }, 1, 0, 1, &rAttachmentInfo });
+        cb.beginRendering({ {}, { {}, swapchain.extent()}, 1, 0, 1, &rAttachmentInfo});
         {
             /* set render state for shader objects */
             cb.bindShadersEXT(shader.stages, shader.shaders);
@@ -163,8 +163,8 @@ int main(int /*argc*/, char** /*argv*/)
             cb.setColorWriteMaskEXT(0, vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB);
             cb.setSampleMaskEXT(vk::SampleCountFlagBits::e1, { 0xffffffff });
             cb.setRasterizationSamplesEXT(vk::SampleCountFlagBits::e1);
-            cb.setViewportWithCountEXT({ { 0, 0, static_cast<float>(swapchain.extent.width), static_cast<float>(swapchain.extent.height) } });
-            cb.setScissorWithCountEXT({ { { 0, 0 }, swapchain.extent } });
+            cb.setViewportWithCountEXT({ { 0, 0, static_cast<float>(swapchain.extent().width), static_cast<float>(swapchain.extent().height)}});
+            cb.setScissorWithCountEXT({ { { 0, 0 }, swapchain.extent()}});
             cb.setVertexInputEXT({}, {});
             cb.setColorBlendEnableEXT(0, vk::False);
             cb.setDepthTestEnableEXT(vk::False);
