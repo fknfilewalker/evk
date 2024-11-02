@@ -200,6 +200,7 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 		cb.setRasterizerDiscardEnableEXT(vk::False);
 		cb.setAlphaToCoverageEnableEXT(vk::False);
 		cb.setPrimitiveRestartEnableEXT(vk::False);
+		cb.setVertexInputEXT({}, {});
 
 		// cb.setVertexInputEXT({ { 0, sizeof(ImDrawVert), vk::VertexInputRate::eVertex, 1 } }, {
 		// 	{ 0, 0, vk::Format::eR32G32Sfloat, IM_OFFSETOF(ImDrawVert, pos) },
