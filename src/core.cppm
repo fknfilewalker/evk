@@ -198,7 +198,7 @@ export namespace evk
         {
 			// pool
 	        const vk::DescriptorPoolSize poolSize { vk::DescriptorType::eMutableEXT, layout.descriptorCount };
-            const vk::DescriptorPoolCreateInfo descPoolInfo{ poolFlags, 1, poolSize };
+            const vk::DescriptorPoolCreateInfo descPoolInfo{ poolFlags | vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSize };
             pool = vk::raii::DescriptorPool{ *dev, descPoolInfo };
             // set
             //const vk::DescriptorSetVariableDescriptorCountAllocateInfo varDescCountAllocInfo = { 1, &bindings.back().first.descriptorCount };
@@ -262,7 +262,7 @@ export namespace evk
             // pool
             std::vector<vk::DescriptorPoolSize> poolSizes(bindings.size());
             for (size_t i = 0; i < bindings.size(); i++) poolSizes[i].setType(bindings[i].first.descriptorType).setDescriptorCount(bindings[i].first.descriptorCount);
-            const vk::DescriptorPoolCreateInfo descPoolInfo{ {}, 1, poolSizes };
+            const vk::DescriptorPoolCreateInfo descPoolInfo{ vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes };
             pool = vk::raii::DescriptorPool{ *dev, descPoolInfo };
 
             // descriptor set
