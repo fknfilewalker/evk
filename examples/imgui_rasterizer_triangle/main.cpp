@@ -67,10 +67,14 @@ int main(int /*argc*/, char** /*argv*/)
 
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
     // * activate features
-    vk::PhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ true };
-    auto indexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeatures{}.setDescriptorBindingVariableDescriptorCount(true).setDescriptorBindingPartiallyBound(true).setPNext(&bufferDeviceAddressFeatures);
+    auto vulkan11Features = vk::PhysicalDeviceVulkan11Features{}
+        .setVariablePointers(true).setVariablePointersStorageBuffer(true);
+    auto vulkan12Features = vk::PhysicalDeviceVulkan12Features{}
+        .setShaderInt8(true).setBufferDeviceAddress(true)
+        .setDescriptorBindingVariableDescriptorCount(true)
+        .setDescriptorBindingPartiallyBound(true).setPNext(&vulkan11Features);
 
-    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &indexingFeatures };
+    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &vulkan12Features };
     vk::PhysicalDeviceHostImageCopyFeaturesEXT hostImageCopyFeatures{ true, &shaderObjectFeatures };
     vk::PhysicalDeviceSynchronization2Features synchronization2Features{ true, &hostImageCopyFeatures };
     vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{ true, &synchronization2Features };

@@ -1,16 +1,15 @@
 /* Usage:
 slangc imgui_backend_shaders.slang -target spirv -emit-spirv-directly -fvk-use-entrypoint-name -source-embed-style u32 -source-embed-name imgui_backend_shaders_spv -o imgui_backend_shaders.h
 */
-
-struct In
-{
-    float2 Position : ATTRIB0;
-    float2 UV : ATTRIB1;
-    float4 Color : ATTRIB2;
+struct Vertex {
+    float2 position;
+    float2 uv;
+    uint8_t4 color;
 };
 
 struct PushConstants
 {
+    Vertex* vertex;
     float2 scale;
     float2 translate;
 };
@@ -23,12 +22,12 @@ struct InOut {
 };
 
 [shader("vertex")]
-InOut vertexMain(In input)
+InOut vertexMain(uint vid: SV_VertexID)
 {
     InOut output;
-    output.Color = input.Color;
-    output.UV = input.UV;
-    output.Position = float4(input.Position * pc.scale + pc.translate, 0.0, 1.0);
+    output.Color = pc.vertex[vid].color / 255.0;
+    output.UV = pc.vertex[vid].uv;
+    output.Position = float4(pc.vertex[vid].position * pc.scale + pc.translate, 0.0, 1.0);
     return output;
 }
 
