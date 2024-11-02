@@ -381,6 +381,13 @@ export namespace evk
             createSwapchain();
         }
 
+        EVK_API ~Swapchain()
+        {
+            while(frames.size()) {
+                for (auto it = frames.begin(); it != frames.end(); (it->presentFinishFence.getStatus() == vk::Result::eSuccess) ? it = frames.erase(it) : ++it) {}
+            }
+        }
+
         EVK_API void createSwapchain() {
             const auto surfaceCapabilities = dev->physicalDevice.getSurfaceCapabilitiesKHR(swapchainCreateInfo.surface);
             swapchainCreateInfo.imageExtent = surfaceCapabilities.currentExtent;
