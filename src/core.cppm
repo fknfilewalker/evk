@@ -405,6 +405,7 @@ export namespace evk
             const Frame& newFrame = getCurrentFrame();
             checkResult(dev->waitForFences(*newFrame.submitFence, vk::True, UINT64_MAX), "waiting for fence error");
             dev->resetFences(*newFrame.submitFence);
+            newFrame.commandBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources); // fix memory leak wtf??
             newFrame.commandBuffer.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
         }
 
