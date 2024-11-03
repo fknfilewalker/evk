@@ -135,7 +135,7 @@ void ImGuiBackend::setFont(const std::string_view filepath, const float scaleFac
 	fontImage.copyMemoryToImage(pixels);
 	fontImage.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-	io.Fonts->SetTexID(static_cast<vk::DescriptorSet::NativeType>(descriptorSet.set)); // Store our identifier
+	io.Fonts->SetTexID((ImTextureID)((vk::DescriptorSet::NativeType)descriptorSet.set)); // Store our identifier
 	descriptorSet.setDescriptor(0, vk::DescriptorImageInfo{ *sampler, fontImage.imageView, vk::ImageLayout::eShaderReadOnlyOptimal });
 	descriptorSet.update();
 }
@@ -257,7 +257,7 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 				});
 
 				// Bind DescriptorSet with font or user texture if different
-				const auto descSet = static_cast<vk::DescriptorSet::NativeType>(pcmd->TextureId);
+				const vk::DescriptorSet::NativeType descSet = (vk::DescriptorSet::NativeType)(pcmd->TextureId);
 				if (!prevDesc || prevDesc != descSet) {
 					cb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, shader.layout, 0, { descSet }, {});
 					prevDesc = descSet;
