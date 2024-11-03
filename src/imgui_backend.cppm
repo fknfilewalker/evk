@@ -34,6 +34,8 @@ export namespace evk
 		std::vector<void*> vertexBuffersPtr;
 		std::vector<evk::Buffer> indexBuffers;
 		std::vector<void*> indexBuffersPtr;
+		std::vector<evk::Buffer> vertexBuffersToBeDeleted;
+		std::vector<evk::Buffer> indexBuffersToBeDeleted;
 
 		evk::Image fontImage;
 		vk::raii::Sampler sampler;

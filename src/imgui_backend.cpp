@@ -102,6 +102,8 @@ ImGuiBackend::ImGuiBackend(
 	vertexBuffersPtr.resize(imageCount);
 	indexBuffers.resize(imageCount);
 	indexBuffersPtr.resize(imageCount);
+	vertexBuffersToBeDeleted.resize(imageCount);
+	indexBuffersToBeDeleted.resize(imageCount);
 	{
 		vk::SamplerCreateInfo samplerInfo{ {}, vk::Filter::eLinear, vk::Filter::eLinear, vk::SamplerMipmapMode::eLinear,
 		vk::SamplerAddressMode::eRepeat, vk::SamplerAddressMode::eRepeat, vk::SamplerAddressMode::eRepeat };
@@ -151,15 +153,19 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 	const int fb_height = static_cast<int>(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
 	if (fb_width <= 0 || fb_height <= 0) return;
 
+	vertexBuffersToBeDeleted[imageIdx] = {};
+	indexBuffersToBeDeleted[imageIdx] = {};
 	if (draw_data->TotalVtxCount > 0)
 	{
 		const size_t vertex_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
 		const size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
 		if (vertexBuffers[imageIdx].size < vertex_size) {
+			vertexBuffersToBeDeleted[imageIdx] = std::move(vertexBuffers[imageIdx]);
 			vertexBuffers[imageIdx] = evk::Buffer{ dev, vertex_size, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
 			vertexBuffersPtr[imageIdx] = vertexBuffers[imageIdx].memory.mapMemory(0, vk::WholeSize);
 		}
 		if (indexBuffers[imageIdx].size < index_size) {
+			indexBuffersToBeDeleted[imageIdx] = std::move(indexBuffers[imageIdx]);
 			indexBuffers[imageIdx] = evk::Buffer{ dev, index_size, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
 			indexBuffersPtr[imageIdx] = indexBuffers[imageIdx].memory.mapMemory(0, vk::WholeSize);
 		}
