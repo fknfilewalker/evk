@@ -116,7 +116,7 @@ Buffer::Buffer(
     vk::DeviceSize size,
     const vk::BufferUsageFlags usageFlags,
     const vk::MemoryPropertyFlags memoryPropertyFlags
-) : Resource{ device }, buffer{ *dev, { {}, size, usageFlags | vk::BufferUsageFlagBits::eShaderDeviceAddress } }, memory{ nullptr }, size{ size }
+) : Resource{ device }, buffer{ *dev, { {}, size, usageFlags } }, memory{ nullptr }, deviceAddress{ 0 }, size{ size }
 {
     const auto memoryRequirements = buffer.getMemoryRequirements();
     const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, memoryPropertyFlags);
@@ -126,8 +126,10 @@ Buffer::Buffer(
     memory = vk::raii::DeviceMemory{ *dev, memoryAllocateInfo };
     buffer.bindMemory(*memory, 0);
 
-    const vk::BufferDeviceAddressInfo bufferDeviceAddressInfo{ *buffer };
-    deviceAddress = dev->getBufferAddress(bufferDeviceAddressInfo); /* for bindless rendering */
+    if (usageFlags & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
+        const vk::BufferDeviceAddressInfo bufferDeviceAddressInfo{ *buffer };
+        deviceAddress = dev->getBufferAddress(bufferDeviceAddressInfo); /* for bindless rendering */
+    }
 }
 
 Image::Image(

@@ -67,7 +67,7 @@ int main(int /*argc*/, char** /*argv*/)
          0.0f,  0.5f, 0.0f
     };
     const size_t verticesSize = vertices.size() * sizeof(float);
-    auto buffer = std::make_unique<evk::Buffer>(device, verticesSize, vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR, vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible); /* reBAR */
+    auto buffer = std::make_unique<evk::Buffer>(device, verticesSize, vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible); /* reBAR */
     void* p = buffer->memory.mapMemory(0, vk::WholeSize);
     std::memcpy(p, vertices.data(), verticesSize);
     buffer->memory.unmapMemory();

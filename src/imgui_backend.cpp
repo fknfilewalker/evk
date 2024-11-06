@@ -161,7 +161,7 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 		const size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
 		if (vertexBuffers[imageIdx].size < vertex_size) {
 			vertexBuffersToBeDeleted[imageIdx] = std::move(vertexBuffers[imageIdx]);
-			vertexBuffers[imageIdx] = evk::Buffer{ dev, vertex_size, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
+			vertexBuffers[imageIdx] = evk::Buffer{ dev, vertex_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
 			vertexBuffersPtr[imageIdx] = vertexBuffers[imageIdx].memory.mapMemory(0, vk::WholeSize);
 		}
 		if (indexBuffers[imageIdx].size < index_size) {
