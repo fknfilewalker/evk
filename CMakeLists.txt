@@ -132,5 +132,5 @@ if(EVK_BUILD_EXAMPLES)
     endif()
     
     add_target(experiments DEPS ${PROJECT_NAME} glfw SOURCES "examples/experiments/main.cpp" "examples/experiments/shaders.h" "examples/experiments/triangle.comp")
-
+    add_target(bug DEPS ${PROJECT_NAME} SOURCES "examples/bug/main.cpp")
 endif()
