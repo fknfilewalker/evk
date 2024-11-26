@@ -94,8 +94,8 @@ int main(int /*argc*/, char** /*argv*/)
     stcb.begin(vk::CommandBufferBeginInfo{});
     auto triangle = evk::rt::TriangleGeometry{}.setVertices(buffer->deviceAddress, vk::Format::eR32G32B32Sfloat, 3);
 
-    evk::rt::AccelerationStructureInfo bottomAsInfo{ device, { { triangle, {} } } };
-    evk::rt::BottomLevelAccelerationStructure blas{ device, stcb, bottomAsInfo };
+    evk::rt::BottomLevelAccelerationStructure blas{ device, { { triangle, {} } } };
+    blas.cmdBuild(stcb);
 
     constexpr auto barrier = vk::MemoryBarrier2{
         vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR, vk::AccessFlagBits2::eAccelerationStructureWriteKHR,

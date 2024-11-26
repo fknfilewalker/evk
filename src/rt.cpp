@@ -115,7 +115,7 @@ _sbtBuffer{ device,  sbt.sizeInBytes, vk::BufferUsageFlagBits::eShaderBindingTab
 	}
 }
 
-TriangleGeometry::TriangleGeometry() : triangleData{ vk::AccelerationStructureGeometryTrianglesDataKHR{}.setIndexType(vk::IndexType::eNoneKHR) },
+TriangleGeometry::TriangleGeometry() : data{ vk::AccelerationStructureGeometryTrianglesDataKHR{}.setIndexType(vk::IndexType::eNoneKHR) },
 hasIndices{ false }, triangleCount{ 0 }, indexBufferMemoryByteOffset{ 0 }, vertexBufferMemoryByteOffset{ 0 }, transformBufferMemoryByteOffset{ 0 } {}
 
 // memoryOffset describes the start of the data in bytes from the beginning of the corresponding buffer
@@ -135,12 +135,12 @@ TriangleGeometry& TriangleGeometry::setVertices(
 		else throw std::runtime_error{ "Stride must be specified for this vertex format" };
 	}
 
-	triangleData.vertexData = address;
-	triangleData.vertexFormat = vertexFormat;
-	triangleData.maxVertex = vertexCount;
-	triangleData.vertexStride = stride;
+	data.vertexData = address;
+	data.vertexFormat = vertexFormat;
+	data.maxVertex = vertexCount;
+	data.vertexStride = stride;
 	// only set triangle count when no indices are set YET
-	if (triangleData.indexType == vk::IndexType::eNoneKHR) {
+	if (data.indexType == vk::IndexType::eNoneKHR) {
 		if (vertexCount % 3 == 0) triangleCount = vertexCount / 3;
 	}
 	vertexBufferMemoryByteOffset = memoryByteOffset;
@@ -148,13 +148,13 @@ TriangleGeometry& TriangleGeometry::setVertices(
 }
 
 TriangleGeometry& TriangleGeometry::setIndices(
-	const vk::DeviceOrHostAddressConstKHR address, 
-	const vk::IndexType indexType, 
-	const uint32_t indexCount, 
+	const vk::DeviceOrHostAddressConstKHR address,
+	const vk::IndexType indexType,
+	const uint32_t indexCount,
 	const uint32_t memoryByteOffset
 ) {
-	triangleData.indexData = address;
-	triangleData.indexType = indexType;
+	data.indexData = address;
+	data.indexType = indexType;
 	if (indexCount % 3 != 0) throw std::runtime_error{ "Only geometries with triangle topology are supported for acceleration structure creation" };
 	triangleCount = indexCount / 3;
 	indexBufferMemoryByteOffset = memoryByteOffset;
@@ -166,7 +166,7 @@ TriangleGeometry& TriangleGeometry::setTransform(
 	const vk::DeviceOrHostAddressConstKHR address, 
 	const uint32_t memoryByteOffset
 ) {
-	triangleData.transformData = address;
+	data.transformData = address;
 	transformBufferMemoryByteOffset = memoryByteOffset;
 	return *this;
 }
