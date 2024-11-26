@@ -87,7 +87,8 @@ int main(int /*argc*/, char** /*argv*/)
     };
     cb.pipelineBarrier2({ {}, barrier });
     auto instances = evk::rt::AsInstanceGeometry{}.setAccelerationStructureReference(blas.deviceAddress).setMask(0xFF).setTransform(evk::rt::identityMatrix);
-    auto tlas = evk::rt::TopLevelAccelerationStructure{ device, cb, { instances } };
+    auto tlas = evk::rt::TopLevelAccelerationStructure{ device, { instances } };
+    tlas.cmdBuild(cb);
     cb.end();
     device->getQueue(queueFamilyIndex.value(), 0).submitAndWaitIdle(vk::SubmitInfo{ {}, {}, *cb }, nullptr);
 
