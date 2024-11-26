@@ -58,7 +58,7 @@ SBT::SBT(
 		const uint32_t entries = hit.size();
 		const uint32_t size = entries ? utils::roundUpToMultipleOfPowerOf2(entries * shaderGroupHandleSizeAligned, shaderGroupBaseAlignment) : 0u;
 		for (const auto& g : hit) {
-			shaderGroupCreateInfos.emplace_back(vk::RayTracingShaderGroupTypeKHR::eGeneral);
+			shaderGroupCreateInfos.emplace_back(static_cast<vk::RayTracingShaderGroupTypeKHR>(g.type));
 			shaderGroupCreateInfos.back().setClosestHitShader(g.closestHit).setAnyHitShader(g.anyHit).setIntersectionShader(g.intersection);
 		}
 		hitRegion = vk::StridedDeviceAddressRegionKHR{ sizeInBytes, shaderGroupHandleSizeAligned, size };
@@ -86,10 +86,10 @@ RayTracingPipeline::RayTracingPipeline(
 	const ShaderSpecialization& specialization
 ) : Resource{ device }, _layout{ *dev, vk::PipelineLayoutCreateInfo{}.setPushConstantRanges(pcRanges) }, _pipeline{ nullptr },
 _sbtBuffer{ device,  sbt.sizeInBytes, vk::BufferUsageFlagBits::eShaderBindingTableKHR, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal } {
-
+	
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages{ stages.size() };
 	for (auto i = 0; i < stages.size(); i++) {
-		shaderStages[i].setStage(stages[i].first.get().stage).setModule(stages[i].first.get()).setPName(stages[i].second.data()).setPSpecializationInfo(&specialization.constInfo);
+		shaderStages[i].setStage(std::get<0>(stages[i])).setModule(std::get<1>(stages[i]).get()).setPName(std::get<2>(stages[i]).data()).setPSpecializationInfo(&specialization.constInfo);
 	}
 	auto createInfo = vk::RayTracingPipelineCreateInfoKHR{}
 		.setStages(shaderStages)

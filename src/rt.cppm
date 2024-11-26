@@ -18,9 +18,15 @@ export namespace evk::rt {
 		};
 		struct HitGroup
 		{
-			HitGroup(const std::optional<uint32_t> closestHit, const std::optional<uint32_t> anyHit, const std::optional<uint32_t> intersection) :
+            enum Type
+            {
+                Triangles = vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup,
+                Procedural = vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup
+            };
+			HitGroup(const Type type, const std::optional<uint32_t> closestHit, const std::optional<uint32_t> anyHit = {}, const std::optional<uint32_t> intersection = {}) : type{ type },
 				closestHit{ closestHit.value_or(vk::ShaderUnusedKHR) }, anyHit{ anyHit.value_or(vk::ShaderUnusedKHR) }, intersection{ intersection.value_or(vk::ShaderUnusedKHR) } {}
-			uint32_t closestHit, anyHit, intersection;
+            Type type;
+		    uint32_t closestHit, anyHit, intersection;
 		};
 
 		struct GroupInfo { uint32_t byteOffset, byteSize, entries, entriesOffset; };

@@ -325,19 +325,8 @@ export namespace evk
 		vk::SpecializationInfo constInfo;
 	};
 
-    struct Shader : Resource, vk::raii::ShaderModule
-    {
-        EVK_API Shader() : Resource{ nullptr }, vk::raii::ShaderModule{ nullptr } {}
-        EVK_API Shader(
-            const std::shared_ptr<Device>& device,
-            const vk::ShaderStageFlagBits stage,
-            const std::vector<uint32_t>& spv
-        ) : Resource{ device }, vk::raii::ShaderModule{ *device, { {}, spv } }, stage{ stage }
-	    {}
-        vk::ShaderStageFlagBits stage;
-    };
     // Shader, entryPoint
-    using ShaderModules = std::vector<std::pair<std::reference_wrapper<const evk::Shader>, std::string_view>>;
+    using ShaderModules = std::vector<std::tuple<const vk::ShaderStageFlagBits, std::reference_wrapper<const vk::raii::ShaderModule>, std::string_view>>;
 
     // stage, spv, entryPoint
     using ShaderStage = std::tuple<const vk::ShaderStageFlagBits, const std::reference_wrapper<const std::vector<uint32_t>>, std::string_view>;
