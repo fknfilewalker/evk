@@ -92,7 +92,7 @@ export namespace evk {
     template<typename T>
     struct SharedPtr
     {
-        SharedPtr() = default;
+        SharedPtr() : _ptr(nullptr) {}
         SharedPtr(std::nullptr_t) : _ptr(nullptr) {}
         SharedPtr(T* ptr) : _ptr(ptr) { increment(); }
         SharedPtr(const SharedPtr& other) { copy(other._ptr); }
