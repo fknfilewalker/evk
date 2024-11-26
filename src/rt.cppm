@@ -141,7 +141,7 @@ export namespace evk::rt {
 			const evk::SharedPtr<evk::Device>& device,
 			const std::vector<std::pair<TriangleGeometry, vk::GeometryFlagsKHR>>& geometries,
 			const vk::BuildAccelerationStructureFlagsKHR buildFlags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace
-		) : device{ device }, _primitives( geometries.size() ), _geos { geometries.size() }, _ranges{ geometries.size() }, accelerationStructure{ nullptr }, deviceAddress{ 0 }
+		) : device{ device }, _primitives( geometries.size() ), _geos { geometries.size() }, _ranges( geometries.size() ), accelerationStructure{nullptr}, deviceAddress{0}
 		{
 			for (size_t i = 0; i < geometries.size(); i++)
 			{
