@@ -118,68 +118,128 @@ export namespace evk::rt {
 
 	using AsInstanceGeometry = vk::AccelerationStructureInstanceKHR;
 
+	struct AccelerationStructureInfo
+	{
+		struct InternalOrExternalBuffer
+		{
+			SharedPtr<evk::Buffer> buffer;
+			vk::DeviceSize offset = 0;
+			operator bool() const { return buffer; }
+		};
+
+		AccelerationStructureInfo(
+			const evk::SharedPtr<evk::Device>& device,
+			const std::vector<std::pair<TriangleGeometry, vk::GeometryFlagsKHR>>& geometries,
+			const vk::BuildAccelerationStructureFlagsKHR buildFlags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace
+        ) : _geos{ geometries.size() }, _ranges{ geometries.size() }
+		{
+			std::vector<uint32_t> primitives(geometries.size());
+			for (size_t i = 0; i < geometries.size(); i++)
+			{
+				const auto& g = geometries[i].first;
+				_geos[i].setGeometryType(vk::GeometryTypeKHR::eTriangles)
+					.setFlags(geometries[i].second)
+					.setGeometry(g.triangleData);
+
+				primitives[i] = g.triangleCount;
+
+				_ranges[i].setTransformOffset(g.transformBufferMemoryByteOffset).setPrimitiveCount(g.triangleCount);
+				if (g.hasIndices) {
+					_ranges[i].setPrimitiveOffset(g.indexBufferMemoryByteOffset).setFirstVertex(g.vertexBufferMemoryByteOffset / g.triangleData.vertexStride);
+				}
+				else {
+					_ranges[i].setPrimitiveOffset(g.vertexBufferMemoryByteOffset);
+				}
+			}
+
+			_asBuildGeoInfo = vk::AccelerationStructureBuildGeometryInfoKHR{}
+				.setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
+				.setFlags(buildFlags)
+				.setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+				.setGeometries(_geos);
+
+			buildSizesInfo = device->getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, _asBuildGeoInfo, primitives);
+		}
+
+		AccelerationStructureInfo(
+			const std::shared_ptr<evk::Device>& device,
+			const std::vector<AsInstanceGeometry>& instances,
+			const vk::GeometryFlagsKHR flags = {},
+			const vk::BuildAccelerationStructureFlagsKHR buildFlags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace
+		) 
+		{
+			auto asInstanceData = vk::AccelerationStructureGeometryInstancesDataKHR{};// .setData(instanceBuffer->deviceAddress);
+			auto asInstanceGeometry = vk::AccelerationStructureGeometryKHR{}
+				.setGeometryType(vk::GeometryTypeKHR::eInstances)
+				.setGeometry(asInstanceData)
+				.setFlags(flags);
+
+
+			auto asBuildGeoInfo = vk::AccelerationStructureBuildGeometryInfoKHR{}
+				.setType(vk::AccelerationStructureTypeKHR::eTopLevel)
+				.setFlags(buildFlags)
+				.setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+				.setGeometries(asInstanceGeometry); // must be 1 for top
+
+			// prepare aux buffers
+			buildSizesInfo = device->getAccelerationStructureBuildSizesKHR(
+				vk::AccelerationStructureBuildTypeKHR::eDevice, asBuildGeoInfo, static_cast<uint32_t>(instances.size()));
+		}
+
+
+		vk::AccelerationStructureBuildSizesInfoKHR buildSizesInfo;
+		vk::AccelerationStructureBuildGeometryInfoKHR _asBuildGeoInfo;
+		std::vector<vk::AccelerationStructureGeometryKHR> _geos;
+	    std::vector<vk::AccelerationStructureBuildRangeInfoKHR> _ranges;
+
+        InternalOrExternalBuffer _scratchBuffer;
+        InternalOrExternalBuffer _accelerationStructureBuffer;
+	};
+
 	struct BottomLevelAccelerationStructure
 	{
 		EVK_API BottomLevelAccelerationStructure() : accelerationStructure{nullptr}, deviceAddress{0} {}
 		EVK_API BottomLevelAccelerationStructure(
 	        const evk::SharedPtr<evk::Device>& device,
 	        const vk::raii::CommandBuffer& cb,
-	        const std::vector<std::pair<TriangleGeometry, vk::GeometryFlagsKHR>>& geometries,
-	        const vk::BuildAccelerationStructureFlagsKHR buildFlags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace
+	        AccelerationStructureInfo& info
 		) : accelerationStructure{ nullptr } {
-	        std::vector<vk::AccelerationStructureGeometryKHR> geos(geometries.size());
-	        std::vector<uint32_t> primitives(geometries.size());
-	        std::vector<vk::AccelerationStructureBuildRangeInfoKHR> range(geometries.size());
-	        for (size_t i = 0; i < geometries.size(); i++)
-	        {
-	            const auto& g = geometries[i].first;
-	            geos[i].setGeometryType(vk::GeometryTypeKHR::eTriangles)
-	                .setFlags(geometries[i].second)
-	                .setGeometry(g.triangleData);
 
-	            primitives[i] = g.triangleCount;
+            _scratchBuffer = info._scratchBuffer;
+            _accelerationStructureBuffer = info._accelerationStructureBuffer;
 
-	            range[i].setTransformOffset(g.transformBufferMemoryByteOffset).setPrimitiveCount(g.triangleCount);
-	            if (g.hasIndices) {
-	                range[i].setPrimitiveOffset(g.indexBufferMemoryByteOffset).setFirstVertex(g.vertexBufferMemoryByteOffset / g.triangleData.vertexStride);
-	            }
-	            else {
-	                range[i].setPrimitiveOffset(g.vertexBufferMemoryByteOffset);
-	            }
-	        }
-
-	        auto asBuildGeoInfo = vk::AccelerationStructureBuildGeometryInfoKHR{}
-	            .setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
-	            .setFlags(buildFlags)
-	            .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
-	            .setGeometries(geos);
-
-	        // prepare aux buffers
-	        auto asBuildSizeInfo = device->getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, asBuildGeoInfo, primitives);
-	        scratchBuffer = std::make_unique<evk::Buffer>(device, asBuildSizeInfo.buildScratchSize, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eDeviceLocal);
-	        accelerationStructureBuffer = std::make_unique<evk::Buffer>(device, asBuildSizeInfo.accelerationStructureSize, vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eDeviceLocal);
+			if (!_scratchBuffer)
+			{
+				_scratchBuffer = { evk::make_shared<evk::Buffer>(device, info.buildSizesInfo.buildScratchSize, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eDeviceLocal), 0 };
+			}
+            if (!_accelerationStructureBuffer)
+            {
+				_accelerationStructureBuffer = { evk::make_shared<evk::Buffer>(device, info.buildSizesInfo.accelerationStructureSize, vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eDeviceLocal), 0 };
+			}
 
 	        {
 	            const auto accelerationStructureInfo = vk::AccelerationStructureCreateInfoKHR{}
 	                .setCreateFlags(vk::AccelerationStructureCreateFlagsKHR{})
-	                .setBuffer(*accelerationStructureBuffer->buffer)
-	                .setOffset(0)
-	                .setSize(asBuildSizeInfo.accelerationStructureSize)
+	                .setBuffer(*_accelerationStructureBuffer.buffer->buffer)
+	                .setOffset(_accelerationStructureBuffer.offset)
+	                .setSize(info.buildSizesInfo.accelerationStructureSize)
 	                .setType(vk::AccelerationStructureTypeKHR::eBottomLevel);
 	            accelerationStructure = device->createAccelerationStructureKHR(accelerationStructureInfo);
 	            deviceAddress = device->getAccelerationStructureAddressKHR(vk::AccelerationStructureDeviceAddressInfoKHR{}.setAccelerationStructure(*accelerationStructure));
 	        }
 
-	        asBuildGeoInfo.setDstAccelerationStructure(*accelerationStructure).setScratchData(scratchBuffer->deviceAddress);
-	        cb.buildAccelerationStructuresKHR(asBuildGeoInfo, { range.data() });
+	        info._asBuildGeoInfo.setDstAccelerationStructure(*accelerationStructure).setScratchData(_scratchBuffer.buffer->deviceAddress + _scratchBuffer.offset);
+	        cb.buildAccelerationStructuresKHR(info._asBuildGeoInfo, { info._ranges.data() });
 	    }
 
-		EVK_API void cleanup() { scratchBuffer = nullptr; }
+		EVK_API void cleanup() { _scratchBuffer = {}; }
 
-	    std::unique_ptr<evk::Buffer> scratchBuffer;
-	    std::unique_ptr<evk::Buffer> accelerationStructureBuffer;
+		AccelerationStructureInfo::InternalOrExternalBuffer _scratchBuffer;
+		AccelerationStructureInfo::InternalOrExternalBuffer _accelerationStructureBuffer;
+
 	    vk::raii::AccelerationStructureKHR accelerationStructure;
 	    vk::DeviceAddress deviceAddress;
+
 	};
 	
 	struct TopLevelAccelerationStructure

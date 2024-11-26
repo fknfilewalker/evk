@@ -119,7 +119,7 @@ export namespace evk
     //     EVK_API constexpr vk::MemoryPropertyFlags devLocalHostVisible = vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible;
     //     EVK_API constexpr vk::MemoryPropertyFlags devLocalHostVisibleCached = vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCached;
     // }
-    struct Buffer : Resource
+    struct Buffer : Resource, Shareable<Buffer>
     {
         EVK_API Buffer();
         EVK_API Buffer(
