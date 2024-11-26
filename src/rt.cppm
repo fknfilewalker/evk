@@ -154,6 +154,7 @@ export namespace evk::rt {
 
 			_asBuildGeoInfo = vk::AccelerationStructureBuildGeometryInfoKHR{}.setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
 				.setFlags(buildFlags).setGeometries(_geos);
+			buildSizesInfo = device->getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, _asBuildGeoInfo, _primitives);
 		}
 
 		EVK_API BottomLevelAccelerationStructure(
@@ -176,18 +177,13 @@ export namespace evk::rt {
 			}
 
 			_asBuildGeoInfo = vk::AccelerationStructureBuildGeometryInfoKHR{}.setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
-				.setFlags(buildFlags).setGeometries(_geos).setMode(vk::BuildAccelerationStructureModeKHR::eBuild);
-		}
-
-        const vk::AccelerationStructureBuildSizesInfoKHR& updateSizeInfo()
-		{
+				.setFlags(buildFlags).setGeometries(_geos);
 			buildSizesInfo = device->getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, _asBuildGeoInfo, _primitives);
-			return buildSizesInfo;
 		}
 
-		void cmdBuild(const vk::raii::CommandBuffer& cb)
+
+		void cmdBuild(const vk::raii::CommandBuffer& cb, const vk::AccelerationStructureKHR src = nullptr)
 	    {
-			if (!buildSizesInfo.accelerationStructureSize) updateSizeInfo();
 			if (!scratchBuffer)
 			{
 				scratchBuffer = { evk::make_shared<evk::Buffer>(device, buildSizesInfo.buildScratchSize, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eDeviceLocal), 0 };
@@ -198,7 +194,7 @@ export namespace evk::rt {
 			}
             if (accelerationStructureBuffer.offset % 256 != 0) throw std::runtime_error("Acceleration structure buffer offset must be a multiple of 256");
 
-	        if (!*accelerationStructure){
+	        {
 	            const auto accelerationStructureInfo = vk::AccelerationStructureCreateInfoKHR{}
 	                .setCreateFlags(vk::AccelerationStructureCreateFlagsKHR{})
 	                .setBuffer(*accelerationStructureBuffer.buffer->buffer)
@@ -210,11 +206,11 @@ export namespace evk::rt {
 	        }
 
 	        _asBuildGeoInfo
+                .setMode(src ? vk::BuildAccelerationStructureModeKHR::eUpdate : vk::BuildAccelerationStructureModeKHR::eBuild)
+			    .setSrcAccelerationStructure(src)
 		        .setDstAccelerationStructure(*accelerationStructure)
 		        .setScratchData(scratchBuffer.buffer->deviceAddress + scratchBuffer.offset);
 	        cb.buildAccelerationStructuresKHR(_asBuildGeoInfo, { _ranges.data() });
-			_asBuildGeoInfo.setSrcAccelerationStructure(*accelerationStructure);
-			_asBuildGeoInfo.setMode(vk::BuildAccelerationStructureModeKHR::eUpdate);
 	    }
 
 		evk::SharedPtr<evk::Device> device;
