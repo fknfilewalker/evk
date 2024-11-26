@@ -89,4 +89,70 @@ export namespace evk {
         }
     }
 
+    template<typename T>
+    struct SharedPtr
+    {
+        SharedPtr() = default;
+        SharedPtr(std::nullptr_t) : _ptr(nullptr) {}
+        SharedPtr(T* ptr) : _ptr(ptr) { increment(); }
+        SharedPtr(const SharedPtr& other) { copy(other._ptr); }
+        SharedPtr(const SharedPtr&& other) noexcept { copy(other._ptr); }
+        SharedPtr(const T&& data) { reset(new T(std::move(data))); }
+
+        SharedPtr& operator=(const SharedPtr& other)
+        {
+            if (this == &other) return *this;
+            SharedPtr(std::move(other)).swap(*this);
+            return *this;
+        }
+        SharedPtr& operator=(SharedPtr&& other) noexcept
+        {
+            SharedPtr(std::move(other)).swap(*this);
+            return *this;
+        }
+
+        ~SharedPtr() { decrement(); }
+
+        T* operator->() { return _ptr; }
+        const T* operator->() const { return _ptr; }
+        T& operator*() { return *_ptr; }
+        const T& operator*() const { return *_ptr; }
+
+        T* get() { return _ptr; }
+        const T* get() const { return _ptr; }
+        void reset(T* ptr = nullptr) { decrement(); _ptr = ptr; increment(); }
+        void swap(SharedPtr& other) noexcept
+        {
+            std::swap(_ptr, other._ptr);
+        }
+        operator bool() const { return _ptr; }
+    private:
+        void increment()
+        {
+            if (_ptr) _ptr->refCount += 1;
+        }
+        void decrement()
+        {
+            if (_ptr) {
+                _ptr->refCount -= 1;
+                if (_ptr->refCount == 0) delete _ptr;
+            }
+        }
+        void copy(T* ptr) { _ptr = ptr; increment(); }
+
+        T* _ptr;
+    };
+
+    template <typename T, typename... Args>
+    evk::SharedPtr<T> make_shared(Args&&... args)
+    {
+        return SharedPtr<T>(new T(std::forward<Args>(args)...));
+    }
+
+    template<typename T>
+    struct Shareable {
+    private:
+        uint32_t refCount = 0;
+        friend struct SharedPtr<T>;
+    };
 }

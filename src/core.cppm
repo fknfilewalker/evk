@@ -45,7 +45,7 @@ export namespace evk
 	    EVK_API void submit2AndWaitIdle(vk::ArrayProxy<const vk::SubmitInfo2> const& submits, vk::Fence fence) const;
     };
 
-    struct Device : vk::raii::Device
+    struct Device : vk::raii::Device, Shareable<Device>
     {
         using QueueFamily = uint32_t;
         using QueueCount = uint32_t;
@@ -97,12 +97,12 @@ export namespace evk
     };
 
     // Every resource has a device reference
-    struct Resource { std::shared_ptr<Device> dev; };
+    struct Resource { evk::SharedPtr<Device> dev; };
 
     struct CommandPool : Resource
     {
         EVK_API CommandPool(
-            const std::shared_ptr<Device>& device,
+            const evk::SharedPtr<Device>& device,
             Device::QueueFamily queueFamily,
             vk::CommandPoolCreateFlags flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer
         );
@@ -123,7 +123,7 @@ export namespace evk
     {
         EVK_API Buffer();
         EVK_API Buffer(
-            const std::shared_ptr<Device>& device,
+            const evk::SharedPtr<Device>& device,
             vk::DeviceSize size,
             vk::BufferUsageFlags usageFlags,
             vk::MemoryPropertyFlags memoryPropertyFlags
@@ -138,7 +138,7 @@ export namespace evk
     {
         EVK_API Image() : Resource{ nullptr }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, format{ vk::Format::eUndefined }, layout{ vk::ImageLayout::eUndefined } {}
         EVK_API Image(
-            const std::shared_ptr<Device>& device,
+            const evk::SharedPtr<Device>& device,
             vk::Extent3D extent,
             vk::Format format,
             vk::ImageTiling tiling,
@@ -165,7 +165,7 @@ export namespace evk
     {
         EVK_API MutableDescriptorSetLayout() : Resource{ nullptr }, layout{ nullptr }, descriptorCount{ 0 } {}
         EVK_API MutableDescriptorSetLayout(
-            const std::shared_ptr<Device>& device,
+            const evk::SharedPtr<Device>& device,
             const uint32_t descriptorCount,
 			const vk::ShaderStageFlags stages = vk::ShaderStageFlagBits::eAll,
             const vk::DescriptorBindingFlags bindingFlags = {},
@@ -191,7 +191,7 @@ export namespace evk
     {
         EVK_API MutableDescriptorSet() : Resource{ nullptr }, pool{ nullptr }, set{ nullptr } {}
         EVK_API MutableDescriptorSet(
-            const std::shared_ptr<Device>& device,
+            const evk::SharedPtr<Device>& device,
             const MutableDescriptorSetLayout& layout,
             const vk::DescriptorPoolCreateFlags& poolFlags = {},
 			const void* pNext = nullptr
@@ -221,7 +221,7 @@ export namespace evk
         using Bindings = std::vector<Binding>;
         EVK_API DescriptorSetLayout() : Resource{ nullptr }, layout{ nullptr } {}
         EVK_API DescriptorSetLayout(
-            const std::shared_ptr<Device>& device,
+            const evk::SharedPtr<Device>& device,
             const Bindings& bindings
         );
 
@@ -245,7 +245,7 @@ export namespace evk
         using Descriptors = std::variant<std::vector<vk::DescriptorImageInfo>, std::vector<vk::DescriptorBufferInfo>, std::vector<vk::BufferView>, std::vector<vk::AccelerationStructureKHR>>;
         EVK_API DescriptorSet() : Resource{ nullptr }, layout{ nullptr }, pool{ nullptr }, set{ nullptr } {}
     	EVK_API DescriptorSet(
-            const std::shared_ptr<Device>& device,
+            const evk::SharedPtr<Device>& device,
             const Bindings& bindings
         ) : Resource{ device }, _bindings{ bindings }, layout{ nullptr }, pool{ nullptr }, set{ nullptr }
         {
@@ -336,7 +336,7 @@ export namespace evk
     {
         EVK_API ShaderObject() : Resource{ nullptr }, layout{ nullptr } {}
         EVK_API ShaderObject(
-            const std::shared_ptr<Device>& device,
+            const evk::SharedPtr<Device>& device,
             const std::vector<ShaderStage>& shaderStages,
             const std::vector<vk::PushConstantRange>& pcRanges = {},
             const ShaderSpecialization& specialization = {},
@@ -363,7 +363,7 @@ export namespace evk
             vk::raii::CommandBuffer commandBuffer;
         };
 
-        EVK_API Swapchain(const std::shared_ptr<Device>& device, const vk::SwapchainCreateInfoKHR& createInfo, const uint32_t queueFamilyIndex) : Resource{ device }, currentImageIdx{ 0 }, previousImageIdx{ 0 },
+        EVK_API Swapchain(const evk::SharedPtr<Device>& device, const vk::SwapchainCreateInfoKHR& createInfo, const uint32_t queueFamilyIndex) : Resource{ device }, currentImageIdx{ 0 }, previousImageIdx{ 0 },
             swapchain{ nullptr }, commandPool{ *dev, { vk::CommandPoolCreateFlagBits::eTransient, queueFamilyIndex } }
         {
             swapchainCreateInfo = createInfo;

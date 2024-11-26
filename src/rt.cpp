@@ -10,7 +10,7 @@ import :rt;
 using namespace evk::rt;
 
 SBT::SBT(
-	const std::shared_ptr<Device>& device,
+	const evk::SharedPtr<Device>& device,
 	const std::vector<GeneralGroup>& rgen,
 	const std::vector<GeneralGroup>& miss,
 	const std::vector<HitGroup>& hit,
@@ -79,7 +79,7 @@ SBT::SBT(
 }
 
 RayTracingPipeline::RayTracingPipeline(
-	const std::shared_ptr<Device>& device,
+	const evk::SharedPtr<Device>& device,
 	const ShaderModules& stages,
 	const SBT& sbt,
 	const std::vector<vk::PushConstantRange>& pcRanges,

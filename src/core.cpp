@@ -99,7 +99,7 @@ const Queue& Device::getQueue(const std::pair<QueueFamily, QueueCount>& queueInd
 }
 
 CommandPool::CommandPool(
-    const std::shared_ptr<Device>& device,
+    const evk::SharedPtr<Device>& device,
     const Device::QueueFamily queueFamily,
     const vk::CommandPoolCreateFlags flags
 ) : Resource{ device }, flags{ flags }, queueFamily{ queueFamily }, commandPool{ *dev, { flags, queueFamily } } {}
@@ -112,7 +112,7 @@ vk::raii::CommandBuffer CommandPool::allocateCommandBuffer(vk::CommandBufferLeve
 
 Buffer::Buffer() : Resource{ nullptr }, buffer{ nullptr }, memory{ nullptr }, deviceAddress{ 0 }, size{ 0 } {}
 Buffer::Buffer(
-    const std::shared_ptr<Device>& device,
+    const evk::SharedPtr<Device>& device,
     vk::DeviceSize size,
     const vk::BufferUsageFlags usageFlags,
     const vk::MemoryPropertyFlags memoryPropertyFlags
@@ -133,7 +133,7 @@ Buffer::Buffer(
 }
 
 Image::Image(
-    const std::shared_ptr<Device>& device,
+    const evk::SharedPtr<Device>& device,
     const vk::Extent3D extent,
     const vk::Format format,
     const vk::ImageTiling tiling,
@@ -200,7 +200,7 @@ void Image::copyImageToMemory(void* ptr) const
 }
 
 DescriptorSetLayout::DescriptorSetLayout(
-    const std::shared_ptr<Device>& device,
+    const evk::SharedPtr<Device>& device,
     const Bindings& bindings
 ) : Resource{ device }, _bindings{ bindings }, layout{ nullptr }
 {
@@ -239,7 +239,7 @@ ShaderSpecialization::ShaderSpecialization(
 }
 
 ShaderObject::ShaderObject(
-    const std::shared_ptr<Device>& device,
+    const evk::SharedPtr<Device>& device,
     const std::vector<ShaderStage>& shaderStages,
     const std::vector<vk::PushConstantRange>& pcRanges,
     const ShaderSpecialization& specialization,

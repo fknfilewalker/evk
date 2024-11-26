@@ -75,8 +75,7 @@ int main(int /*argc*/, char** /*argv*/)
     vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &dynamicRenderingFeatures };
     physicalDeviceFeatures2.features.shaderInt64 = true;
     // * create device
-    auto device = std::make_shared<evk::Device>(physicalDevice, dExtensions, evk::Device::Queues{ {queueFamilyIndex.value(), 1} }, &physicalDeviceFeatures2);
-
+    auto device = evk::make_shared<evk::Device>(physicalDevice, dExtensions, evk::Device::Queues{ {queueFamilyIndex.value(), 1} }, &physicalDeviceFeatures2);
     // Vertex buffer setup (triangle is upside down on purpose)
     const std::vector vertices = {
         -0.5f, -0.5f, 0.0f,

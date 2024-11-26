@@ -32,7 +32,7 @@ export namespace evk::rt {
 		struct GroupInfo { uint32_t byteOffset, byteSize, entries, entriesOffset; };
 
 		EVK_API SBT(
-			const std::shared_ptr<Device>& device,
+			const evk::SharedPtr<Device>& device,
 			const std::vector<GeneralGroup>& rgen,
 			const std::vector<GeneralGroup>& miss,
 			const std::vector<HitGroup>& hit,
@@ -50,7 +50,7 @@ export namespace evk::rt {
 	struct RayTracingPipeline : Resource
 	{
 		EVK_API RayTracingPipeline(
-			const std::shared_ptr<Device>& device,
+			const evk::SharedPtr<Device>& device,
 			const ShaderModules& stages,
 			const SBT& sbt,
 			const std::vector<vk::PushConstantRange>& pcRanges = {},
@@ -122,7 +122,7 @@ export namespace evk::rt {
 	{
 		EVK_API BottomLevelAccelerationStructure() : accelerationStructure{nullptr}, deviceAddress{0} {}
 		EVK_API BottomLevelAccelerationStructure(
-	        const std::shared_ptr<evk::Device>& device,
+	        const evk::SharedPtr<evk::Device>& device,
 	        const vk::raii::CommandBuffer& cb,
 	        const std::vector<std::pair<TriangleGeometry, vk::GeometryFlagsKHR>>& geometries,
 	        const vk::BuildAccelerationStructureFlagsKHR buildFlags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace
@@ -181,12 +181,12 @@ export namespace evk::rt {
 	    vk::raii::AccelerationStructureKHR accelerationStructure;
 	    vk::DeviceAddress deviceAddress;
 	};
-
+	
 	struct TopLevelAccelerationStructure
 	{
 		EVK_API TopLevelAccelerationStructure() : accelerationStructure{ nullptr }, deviceAddress{ 0 } {}
 		EVK_API TopLevelAccelerationStructure(
-	        const std::shared_ptr<evk::Device>& device,
+	        const evk::SharedPtr<evk::Device>& device,
 	        const vk::raii::CommandBuffer& cb,
 	        const std::vector<AsInstanceGeometry>& instances,
 	        const vk::GeometryFlagsKHR flags = {},

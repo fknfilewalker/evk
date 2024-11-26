@@ -12,7 +12,7 @@ export namespace evk
 	{
 		EVK_API ImGuiBackend() : sampler{nullptr} {};
 		EVK_API ImGuiBackend(
-			const std::shared_ptr<Device>& device,
+			const evk::SharedPtr<Device>& device,
 			uint32_t imageCount
 		);
 

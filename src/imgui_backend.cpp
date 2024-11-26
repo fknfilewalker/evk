@@ -92,7 +92,7 @@ namespace
 }
 
 ImGuiBackend::ImGuiBackend(
-	const std::shared_ptr<Device>& device,
+	const evk::SharedPtr<Device>& device,
 	uint32_t imageCount
 ) : Resource{ device }, descriptorSet{
 	device, evk::DescriptorSet::Bindings{ { { 0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment } } }
