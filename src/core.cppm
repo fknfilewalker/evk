@@ -325,8 +325,9 @@ export namespace evk
 		vk::SpecializationInfo constInfo;
 	};
 
-    // Shader, entryPoint
-    using ShaderModules = std::vector<std::tuple<const vk::ShaderStageFlagBits, std::reference_wrapper<const vk::raii::ShaderModule>, std::string_view>>;
+    // stage, module, entryPoint
+    using ShaderModule = std::tuple<const vk::ShaderStageFlagBits, std::reference_wrapper<const vk::raii::ShaderModule>, std::string_view>;
+    using ShaderModules = std::vector<ShaderModule>;
 
     // stage, spv, entryPoint
     using ShaderStage = std::tuple<const vk::ShaderStageFlagBits, const std::reference_wrapper<const std::vector<uint32_t>>, std::string_view>;
