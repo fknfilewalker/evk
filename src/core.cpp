@@ -222,8 +222,58 @@ void DescriptorSet::setDescriptor(const uint32_t binding, const Descriptor& data
         if constexpr (std::is_same_v<T, vk::DescriptorImageInfo>) {
             std::get<std::vector<vk::DescriptorImageInfo>>(_descriptors[binding])[index] = v;
         }
+        else if constexpr (std::is_same_v<T, vk::DescriptorBufferInfo>) {
+            std::get<std::vector<vk::DescriptorBufferInfo>>(_descriptors[binding])[index] = v;
+        }
+        else if constexpr (std::is_same_v<T, vk::BufferView>) {
+            std::get<std::vector<vk::BufferView>>(_descriptors[binding])[index] = v;
+        }
         else throw std::runtime_error("Descriptor type not supported");
     }, data);
+}
+
+void DescriptorSet::update()
+{
+    std::vector<vk::WriteDescriptorSet> descWrite;
+    descWrite.reserve(_bindings.size());
+    for (const auto& binding : _bindings) {
+        vk::WriteDescriptorSet write{ set, binding.first.binding, 0, 0, binding.first.descriptorType };
+
+        std::visit([&write]<typename T>(const T & data) {
+            if constexpr (std::is_same_v<T, std::vector<vk::DescriptorImageInfo>>) {
+                for (const auto& imageInfo : data) {
+                    if (imageInfo.imageView) write.descriptorCount++;
+                    else break;
+                }
+                write.setPImageInfo(data.data());
+            }
+            else if constexpr (std::is_same_v<T, std::vector<vk::DescriptorBufferInfo>>) {
+                for (const auto& bufferInfo : data) {
+                    if (bufferInfo.buffer) write.descriptorCount++;
+                    else break;
+                }
+                write.setPBufferInfo(data.data());
+            }
+            else if constexpr (std::is_same_v<T, std::vector<vk::BufferView>>) {
+                for (const auto& bufferView : data) {
+                    if (bufferView) write.descriptorCount++;
+                    else break;
+                }
+                write.setPTexelBufferView(data.data());
+            }
+            else if constexpr (std::is_same_v<T, std::vector<vk::AccelerationStructureKHR>>) {
+                for (const auto& as : data) {
+                    if (as) write.descriptorCount++;
+                    else break;
+                }
+                write.setPNext(data.data());
+            }
+            else throw std::runtime_error("Descriptor type not supported");
+        }, _descriptors[binding.first.binding]);
+
+        if (write.descriptorCount) descWrite.push_back(write);
+    }
+    dev->updateDescriptorSets(descWrite, {});
 }
 
 ShaderSpecialization::ShaderSpecialization(

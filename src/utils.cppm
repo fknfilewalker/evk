@@ -92,40 +92,40 @@ export namespace evk {
     template<typename T>
     struct SharedPtr
     {
-        SharedPtr() : _ptr(nullptr) {}
-        SharedPtr(std::nullptr_t) : _ptr(nullptr) {}
-        SharedPtr(T* ptr) : _ptr(ptr) { increment(); }
-        SharedPtr(const SharedPtr& other) { copy(other._ptr); }
-        SharedPtr(const SharedPtr&& other) noexcept { copy(other._ptr); }
-        SharedPtr(const T&& data) { reset(new T(std::move(data))); }
+        EVK_API SharedPtr() : _ptr(nullptr) {}
+        EVK_API SharedPtr(std::nullptr_t) : _ptr(nullptr) {}
+        EVK_API SharedPtr(T* ptr) : _ptr(ptr) { increment(); }
+        EVK_API SharedPtr(const SharedPtr& other) { copy(other._ptr); }
+        EVK_API SharedPtr(const SharedPtr&& other) noexcept { copy(other._ptr); }
+        EVK_API SharedPtr(const T&& data) { reset(new T(std::move(data))); }
 
-        SharedPtr& operator=(const SharedPtr& other)
+        EVK_API SharedPtr& operator=(const SharedPtr& other)
         {
             if (this == &other) return *this;
             SharedPtr(std::move(other)).swap(*this);
             return *this;
         }
-        SharedPtr& operator=(SharedPtr&& other) noexcept
+        EVK_API SharedPtr& operator=(SharedPtr&& other) noexcept
         {
             SharedPtr(std::move(other)).swap(*this);
             return *this;
         }
 
-        ~SharedPtr() { decrement(); }
+        EVK_API ~SharedPtr() { decrement(); }
 
-        T* operator->() { return _ptr; }
-        const T* operator->() const { return _ptr; }
-        T& operator*() { return *_ptr; }
-        const T& operator*() const { return *_ptr; }
+        EVK_API T* operator->() { return _ptr; }
+        EVK_API const T* operator->() const { return _ptr; }
+        EVK_API T& operator*() { return *_ptr; }
+        EVK_API const T& operator*() const { return *_ptr; }
 
-        T* get() { return _ptr; }
-        const T* get() const { return _ptr; }
-        void reset(T* ptr = nullptr) { decrement(); _ptr = ptr; increment(); }
-        void swap(SharedPtr& other) noexcept
+        EVK_API T* get() { return _ptr; }
+        EVK_API const T* get() const { return _ptr; }
+        EVK_API void reset(T* ptr = nullptr) { decrement(); _ptr = ptr; increment(); }
+        EVK_API void swap(SharedPtr& other) noexcept
         {
             std::swap(_ptr, other._ptr);
         }
-        operator bool() const { return _ptr; }
+        EVK_API operator bool() const { return _ptr; }
     private:
         void increment()
         {
@@ -144,7 +144,7 @@ export namespace evk {
     };
 
     template <typename T, typename... Args>
-    evk::SharedPtr<T> make_shared(Args&&... args)
+    EVK_API evk::SharedPtr<T> make_shared(Args&&... args)
     {
         return SharedPtr<T>(new T(std::forward<Args>(args)...));
     }

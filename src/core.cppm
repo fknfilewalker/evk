@@ -284,23 +284,7 @@ export namespace evk
 
         EVK_API void setDescriptor(uint32_t binding, const Descriptor& data, uint32_t index = 0);
 
-        EVK_API void update()
-        {
-            std::vector<vk::WriteDescriptorSet> descWrite;
-            descWrite.reserve(_bindings.size());
-            for (const auto& binding : _bindings) {
-                vk::WriteDescriptorSet write { set, binding.first.binding, 0, 0, binding.first.descriptorType};
-                if (const auto& imageInfoVector = std::get_if<std::vector<vk::DescriptorImageInfo>>(&_descriptors[binding.first.binding])) {
-                    for (const auto& imageInfo : *imageInfoVector) {
-                        if (imageInfo.imageView) write.descriptorCount++;
-                        else break;
-                    }
-                    write.setPImageInfo(imageInfoVector->data());
-                }
-                if(write.descriptorCount) descWrite.push_back(write);
-            }
-            dev->updateDescriptorSets(descWrite, {});
-        }
+        EVK_API void update();
 
         EVK_API operator const vk::DescriptorSetLayout& () const { return *layout; }
         EVK_API operator const vk::DescriptorSet& () const { return set; }
