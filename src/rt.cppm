@@ -49,22 +49,68 @@ export namespace evk::rt {
 
 	struct RayTracingPipeline : Resource
 	{
-		EVK_API RayTracingPipeline(
+        EVK_API RayTracingPipeline() : layout{ nullptr }, pipeline{ nullptr } {}
+        EVK_API RayTracingPipeline(
 			const evk::SharedPtr<Device>& device,
 			const ShaderModules& stages,
 			const SBT& sbt,
 			const std::vector<vk::PushConstantRange>& pcRanges = {},
-			const ShaderSpecialization& specialization = {}
-		);
+			const ShaderSpecialization& specialization = {},
+			const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts = {}
+		) : Resource{ device }, layout{ *dev, vk::PipelineLayoutCreateInfo{}.setPushConstantRanges(pcRanges).setSetLayouts(descriptorSetLayouts) }, pipeline{ nullptr },
+			_sbtBuffer{ device,  sbt.sizeInBytes, vk::BufferUsageFlagBits::eShaderBindingTableKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal } {
 
-		vk::raii::PipelineLayout _layout;
-		vk::raii::Pipeline _pipeline;
+			std::vector<vk::PipelineShaderStageCreateInfo> shaderStages{ stages.size() };
+			for (auto i = 0; i < stages.size(); i++) {
+				shaderStages[i].setStage(std::get<0>(stages[i])).setModule(std::get<1>(stages[i]).get()).setPName(std::get<2>(stages[i]).data()).setPSpecializationInfo(&specialization.constInfo);
+			}
+			auto createInfo = vk::RayTracingPipelineCreateInfoKHR{}
+				.setStages(shaderStages)
+				.setLayout(layout)
+				.setMaxPipelineRayRecursionDepth(device->rayTracingPipelineProperties.maxRayRecursionDepth)
+				.setGroups(sbt.shaderGroupCreateInfos);
+			pipeline = vk::raii::Pipeline{ *device, nullptr, nullptr, createInfo };
+			{
+				auto shaderHandleStorage = pipeline.getRayTracingShaderGroupHandlesKHR<uint8_t>(0, sbt.shaderGroupCreateInfos.size(), sbt.sizeInBytes);
+				std::memcpy(_sbtBuffer.memory.mapMemory(0, vk::WholeSize), shaderHandleStorage.data(), shaderHandleStorage.size());
+				_sbtBuffer.memory.unmapMemory();
+
+				_rgenRegions = sbt.rgenRegions;
+				_missRegion = sbt.missRegion;
+				_hitRegion = sbt.hitRegion;
+				_callableRegion = sbt.callableRegion;
+
+				for (auto& r : _rgenRegions) r.deviceAddress += _sbtBuffer.deviceAddress;
+				_missRegion.deviceAddress += _sbtBuffer.deviceAddress;
+				_hitRegion.deviceAddress += _sbtBuffer.deviceAddress;
+				_callableRegion.deviceAddress += _sbtBuffer.deviceAddress;
+			}
+		}
+
+		EVK_API void cmdTraceRays(const vk::raii::CommandBuffer& cb, const uint32_t width, const uint32_t height = 1, const uint32_t depth = 1,
+			const uint32_t rgenOffset = 0) const
+		{
+			auto& rtp = dev->rayTracingPipelineProperties;
+			// offset the rgen shader in the sbt
+			const uint32_t handleSizeAlignment = utils::roundUpToMultipleOf(rtp.shaderGroupHandleSize, rtp.shaderGroupHandleAlignment);
+			const uint32_t baseSizeAlignment = utils::roundUpToMultipleOf(handleSizeAlignment, rtp.shaderGroupBaseAlignment);
+			vk::StridedDeviceAddressRegionKHR deviceRegionRaygenStrided = _rgenRegions[0];
+			const uint32_t rgenHandleOffset = rgenOffset * baseSizeAlignment;
+			deviceRegionRaygenStrided.deviceAddress += rgenHandleOffset;
+            if (rgenHandleOffset >= deviceRegionRaygenStrided.size) throw std::runtime_error{ "Offset must be within the range of rgen groups" };
+			deviceRegionRaygenStrided.size = baseSizeAlignment;
+
+            cb.traceRaysKHR(deviceRegionRaygenStrided, _missRegion, _hitRegion, _callableRegion, width, height, depth);
+		}
+
+		vk::raii::PipelineLayout layout;
+		vk::raii::Pipeline pipeline;
 		evk::Buffer _sbtBuffer;
 		// regions in _sbtBuffer
-		std::vector<vk::StridedDeviceAddressRegionKHR> rgenRegions;
-		vk::StridedDeviceAddressRegionKHR missRegion;
-		vk::StridedDeviceAddressRegionKHR hitRegion;
-		vk::StridedDeviceAddressRegionKHR callableRegion;
+		std::vector<vk::StridedDeviceAddressRegionKHR> _rgenRegions;
+		vk::StridedDeviceAddressRegionKHR _missRegion;
+		vk::StridedDeviceAddressRegionKHR _hitRegion;
+		vk::StridedDeviceAddressRegionKHR _callableRegion;
 	};
 
 	using Transform = vk::TransformMatrixKHR;

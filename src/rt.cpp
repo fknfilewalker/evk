@@ -78,43 +78,6 @@ SBT::SBT(
 	}
 }
 
-RayTracingPipeline::RayTracingPipeline(
-	const evk::SharedPtr<Device>& device,
-	const ShaderModules& stages,
-	const SBT& sbt,
-	const std::vector<vk::PushConstantRange>& pcRanges,
-	const ShaderSpecialization& specialization
-) : Resource{ device }, _layout{ *dev, vk::PipelineLayoutCreateInfo{}.setPushConstantRanges(pcRanges) }, _pipeline{ nullptr },
-_sbtBuffer{ device,  sbt.sizeInBytes, vk::BufferUsageFlagBits::eShaderBindingTableKHR, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal } {
-	
-	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages{ stages.size() };
-	for (auto i = 0; i < stages.size(); i++) {
-		shaderStages[i].setStage(std::get<0>(stages[i])).setModule(std::get<1>(stages[i]).get()).setPName(std::get<2>(stages[i]).data()).setPSpecializationInfo(&specialization.constInfo);
-	}
-	auto createInfo = vk::RayTracingPipelineCreateInfoKHR{}
-		.setStages(shaderStages)
-		.setLayout(_layout)
-		.setMaxPipelineRayRecursionDepth(device->rayTracingPipelineProperties.maxRayRecursionDepth)
-		.setGroups(sbt.shaderGroupCreateInfos);
-	_pipeline = vk::raii::Pipeline{ *device, nullptr, nullptr, createInfo };
-
-	{
-		auto shaderHandleStorage = _pipeline.getRayTracingShaderGroupHandlesKHR<uint8_t>(0, sbt.shaderGroupCreateInfos.size(), sbt.sizeInBytes);
-		std::memcpy(_sbtBuffer.memory.mapMemory(0, vk::WholeSize), shaderHandleStorage.data(), shaderHandleStorage.size());
-		_sbtBuffer.memory.unmapMemory();
-
-		rgenRegions = sbt.rgenRegions;
-		missRegion = sbt.missRegion;
-		hitRegion = sbt.hitRegion;
-		callableRegion = sbt.callableRegion;
-
-		for (auto& r : rgenRegions) r.deviceAddress += _sbtBuffer.deviceAddress;
-		missRegion.deviceAddress += _sbtBuffer.deviceAddress;
-		hitRegion.deviceAddress += _sbtBuffer.deviceAddress;
-		callableRegion.deviceAddress += _sbtBuffer.deviceAddress;
-	}
-}
-
 TriangleGeometry::TriangleGeometry() : data{ vk::AccelerationStructureGeometryTrianglesDataKHR{}.setIndexType(vk::IndexType::eNoneKHR) },
 hasIndices{ false }, triangleCount{ 0 }, indexBufferMemoryByteOffset{ 0 }, vertexBufferMemoryByteOffset{ 0 }, transformBufferMemoryByteOffset{ 0 } {}
 
