@@ -94,9 +94,9 @@ namespace
 ImGuiBackend::ImGuiBackend(
 	const evk::SharedPtr<Device>& device,
 	uint32_t imageCount
-) : Resource{ device }, descriptorSet{
-	device, evk::DescriptorSet::Bindings{ { { 0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment } } }
-}, sampler{ nullptr }
+) : Resource{ device }, descriptorSetLayout{ device, {
+        { { 0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment } }
+    } }, descriptorSet{ device, descriptorSetLayout }, sampler{ nullptr }
 {
 	vertexBuffers.resize(imageCount);
 	vertexBuffersPtr.resize(imageCount);
@@ -115,7 +115,7 @@ ImGuiBackend::ImGuiBackend(
 	shader = evk::ShaderObject{ device, {
 		{ vk::ShaderStageFlagBits::eVertex, imgui_backend_shaders_spv, "vertexMain" },
 		{ vk::ShaderStageFlagBits::eFragment, imgui_backend_shaders_spv, "fragmentMain" }
-	}, { pcRange }, {}, { descriptorSet } };
+	}, { pcRange }, {}, { descriptorSetLayout.layout } };
 }
 
 void ImGuiBackend::setFont(const std::string_view filepath, const float scaleFactor)

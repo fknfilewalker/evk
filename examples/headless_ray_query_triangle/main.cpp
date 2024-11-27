@@ -98,9 +98,10 @@ int main(int /*argc*/, char** /*argv*/)
     image.transitionLayout(vk::ImageLayout::eGeneral);
 
     // Descriptor set setup
-    evk::DescriptorSet descriptorSet{ device, evk::DescriptorSet::Bindings{
+    evk::DescriptorSetLayout descriptorSetLayout{ device, {
         { { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute } }
     } };
+    evk::DescriptorSet descriptorSet{ device, descriptorSetLayout };
     descriptorSet.setDescriptor(0, vk::DescriptorImageInfo{ {}, image.imageView, vk::ImageLayout::eGeneral });
     descriptorSet.update();
 
@@ -118,7 +119,7 @@ int main(int /*argc*/, char** /*argv*/)
     constexpr vk::PushConstantRange pcRange{ vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint64_t) };
     evk::ShaderObject shader{ device, {
         { vk::ShaderStageFlagBits::eCompute, computeShaderSPV, "main" }
-    }, { pcRange }, shaderSpecialization, { descriptorSet } };
+    }, { pcRange }, shaderSpecialization, { descriptorSetLayout.layout } };
 
     cb.begin(vk::CommandBufferBeginInfo{});
     {

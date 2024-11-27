@@ -28,6 +28,7 @@ export namespace evk
 			uint32_t imageIdx
 		);
 
+        evk::DescriptorSetLayout descriptorSetLayout;
 		evk::DescriptorSet descriptorSet;
 		evk::ShaderObject shader;
 		std::vector<evk::Buffer> vertexBuffers;

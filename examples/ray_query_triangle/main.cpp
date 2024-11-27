@@ -128,15 +128,17 @@ int main(int /*argc*/, char** /*argv*/)
 
     // Descriptor set setup
     std::vector<evk::Image> images;
+
+    evk::DescriptorSetLayout descriptorSetLayout{ device, {
+        { { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute }, vk::DescriptorBindingFlagBits::eVariableDescriptorCount }
+    }};
     std::vector<evk::DescriptorSet> descriptorSets;
     descriptorSets.reserve(swapchain.imageCount());
     for (uint32_t i = 0; i < swapchain.imageCount(); i++) {
         images.emplace_back(device, vk::Extent3D{ target.width, target.height, 1 }, sFormat.value().format, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eDeviceLocal);
         images.back().transitionLayout(vk::ImageLayout::eGeneral);
-    	descriptorSets.emplace_back(device, evk::DescriptorSet::Bindings{
-            { { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eAll }, { vk::DescriptorBindingFlagBits::eVariableDescriptorCount } }
-            });
+    	descriptorSets.emplace_back(device, descriptorSetLayout);
         descriptorSets.back().setDescriptor(0, vk::DescriptorImageInfo{ {}, images.back().imageView, vk::ImageLayout::eGeneral });
         descriptorSets.back().update();
     }
@@ -155,7 +157,7 @@ int main(int /*argc*/, char** /*argv*/)
     constexpr vk::PushConstantRange pcRange{ vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint64_t) };
     evk::ShaderObject shader{ device, {
         { vk::ShaderStageFlagBits::eCompute, computeShaderSPV, "main" }
-    }, { pcRange }, shaderSpecialization, { descriptorSets[0] } };
+    }, { pcRange }, shaderSpecialization, { descriptorSetLayout } };
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
