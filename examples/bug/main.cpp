@@ -1,3 +1,4 @@
+#define VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL 1
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
@@ -6,7 +7,7 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 // test application to showcase a memory leak
 int main(int /*argc*/, char** /*argv*/) {
 
-    static vk::DynamicLoader dl{};
+    static vk::detail::DynamicLoader dl{};
     auto vkGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
 
