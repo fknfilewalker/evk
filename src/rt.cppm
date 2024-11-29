@@ -119,16 +119,8 @@ export namespace evk::rt {
 			const uint32_t rgenOffset = 0) const
 		{
 			auto& rtp = dev->rayTracingPipelineProperties;
-			// offset the rgen shader in the sbt
-			const uint32_t handleSizeAlignment = utils::roundUpToMultipleOf(rtp.shaderGroupHandleSize, rtp.shaderGroupHandleAlignment);
-			const uint32_t baseSizeAlignment = utils::roundUpToMultipleOf(handleSizeAlignment, rtp.shaderGroupBaseAlignment);
-			vk::StridedDeviceAddressRegionKHR deviceRegionRaygenStrided = _rgenRegions[0];
-			const uint32_t rgenHandleOffset = rgenOffset * baseSizeAlignment;
-			deviceRegionRaygenStrided.deviceAddress += rgenHandleOffset;
-            if (rgenHandleOffset >= deviceRegionRaygenStrided.size) throw std::runtime_error{ "Offset must be within the range of rgen groups" };
-			deviceRegionRaygenStrided.size = baseSizeAlignment;
-
-            cb.traceRaysKHR(deviceRegionRaygenStrided, _missRegion, _hitRegion, _callableRegion, width, height, depth);
+            if (rgenOffset >= _rgenRegions.size()) throw std::runtime_error{ "Offset must be within the range of rgen groups" };
+            cb.traceRaysKHR(_rgenRegions[rgenOffset], _missRegion, _hitRegion, _callableRegion, width, height, depth);
 		}
 
 		vk::raii::PipelineLayout layout;
