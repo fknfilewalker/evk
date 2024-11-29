@@ -43,6 +43,7 @@ export namespace evk::rt {
 		vk::StridedDeviceAddressRegionKHR missRegion;
 		vk::StridedDeviceAddressRegionKHR hitRegion;
 		vk::StridedDeviceAddressRegionKHR callableRegion;
+        uint32_t missEntries, hitEntries, callableEntries;
 		size_t sizeInBytes;
 		std::vector<vk::RayTracingShaderGroupCreateInfoKHR> shaderGroupCreateInfos;
 	};
@@ -71,8 +72,35 @@ export namespace evk::rt {
 				.setGroups(sbt.shaderGroupCreateInfos);
 			pipeline = vk::raii::Pipeline{ *device, nullptr, nullptr, createInfo };
 			{
-				auto shaderHandleStorage = pipeline.getRayTracingShaderGroupHandlesKHR<uint8_t>(0, sbt.shaderGroupCreateInfos.size(), sbt.sizeInBytes);
-				std::memcpy(_sbtBuffer.memory.mapMemory(0, vk::WholeSize), shaderHandleStorage.data(), shaderHandleStorage.size());
+				const auto shaderGroupHandleSize = device->rayTracingPipelineProperties.shaderGroupHandleSize;
+				const auto shaderHandleStorageSize = shaderGroupHandleSize * sbt.shaderGroupCreateInfos.size();
+				const auto shaderHandleStorage = pipeline.getRayTracingShaderGroupHandlesKHR<uint8_t>(0, sbt.shaderGroupCreateInfos.size(), shaderHandleStorageSize);
+
+				uint8_t* ptr = static_cast<uint8_t*>(_sbtBuffer.memory.mapMemory(0, vk::WholeSize));
+
+				uint32_t shaderHandleStorageOffset = 0;
+				for (auto rgen : sbt.rgenRegions) {
+					std::memcpy(ptr + rgen.deviceAddress, shaderHandleStorage.data() + shaderHandleStorageOffset, shaderGroupHandleSize);
+					shaderHandleStorageOffset += shaderGroupHandleSize;
+				}
+
+				if (sbt.missEntries) {
+					auto size = shaderGroupHandleSize * sbt.missEntries;
+					std::memcpy(ptr + sbt.missRegion.deviceAddress, shaderHandleStorage.data() + shaderHandleStorageOffset, size);
+					shaderHandleStorageOffset += size;
+				}
+
+				if (sbt.hitEntries) {
+					auto size = shaderGroupHandleSize * sbt.hitEntries;
+					std::memcpy(ptr + sbt.hitRegion.deviceAddress, shaderHandleStorage.data() + shaderHandleStorageOffset, size);
+					shaderHandleStorageOffset += size;
+				}
+
+				if (sbt.callableEntries) {
+					auto size = shaderGroupHandleSize * sbt.callableEntries;
+					std::memcpy(ptr + sbt.callableRegion.deviceAddress, shaderHandleStorage.data() + shaderHandleStorageOffset, size);
+					shaderHandleStorageOffset += size;
+                }
 				_sbtBuffer.memory.unmapMemory();
 
 				_rgenRegions = sbt.rgenRegions;

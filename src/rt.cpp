@@ -15,7 +15,7 @@ SBT::SBT(
 	const std::vector<GeneralGroup>& miss,
 	const std::vector<HitGroup>& hit,
 	const std::vector<GeneralGroup>& callable
-)
+) : missEntries{ 0 }, hitEntries{ 0 }, callableEntries{ 0 }, sizeInBytes{ 0 }
 {
 	shaderGroupCreateInfos.reserve(rgen.size() + miss.size() + hit.size() + callable.size());
 	// each entry
@@ -26,7 +26,6 @@ SBT::SBT(
 	const uint32_t shaderGroupBaseAlignment = device->rayTracingPipelineProperties.shaderGroupBaseAlignment;
 	const uint32_t shaderGroupBaseAligned = utils::roundUpToMultipleOfPowerOf2(shaderGroupHandleSizeAligned, shaderGroupBaseAlignment);
 
-	sizeInBytes = 0;
 	// rgen
 	// each entry aligned with shaderGroupBaseAligned
 	{
@@ -43,8 +42,8 @@ SBT::SBT(
 	// miss
 	// each entry aligned with shaderGroupHandleSizeAligned
 	{
-		const uint32_t entries = miss.size();
-		const uint32_t size = entries ? utils::roundUpToMultipleOfPowerOf2(entries * shaderGroupHandleSizeAligned, shaderGroupBaseAlignment) : 0u;
+		missEntries = miss.size();
+		const uint32_t size = missEntries ? utils::roundUpToMultipleOfPowerOf2(missEntries * shaderGroupHandleSizeAligned, shaderGroupBaseAlignment) : 0u;
 		for (const auto& g : miss) {
 			shaderGroupCreateInfos.emplace_back(vk::RayTracingShaderGroupTypeKHR::eGeneral);
 			shaderGroupCreateInfos.back().setGeneralShader(g.raygen_miss_callable);
@@ -55,8 +54,8 @@ SBT::SBT(
 	// hit
 	// each entry aligned with shaderGroupHandleSizeAligned
 	{
-		const uint32_t entries = hit.size();
-		const uint32_t size = entries ? utils::roundUpToMultipleOfPowerOf2(entries * shaderGroupHandleSizeAligned, shaderGroupBaseAlignment) : 0u;
+		hitEntries = hit.size();
+		const uint32_t size = hitEntries ? utils::roundUpToMultipleOfPowerOf2(hitEntries * shaderGroupHandleSizeAligned, shaderGroupBaseAlignment) : 0u;
 		for (const auto& g : hit) {
 			shaderGroupCreateInfos.emplace_back(static_cast<vk::RayTracingShaderGroupTypeKHR>(g.type));
 			shaderGroupCreateInfos.back().setClosestHitShader(g.closestHit).setAnyHitShader(g.anyHit).setIntersectionShader(g.intersection);
@@ -67,8 +66,8 @@ SBT::SBT(
 	// callable
 	// each entry aligned with shaderGroupHandleSizeAligned
 	{
-		const uint32_t entries = callable.size();
-		const uint32_t size = entries ? utils::roundUpToMultipleOfPowerOf2(entries * shaderGroupHandleSizeAligned, shaderGroupBaseAlignment) : 0u;
+		callableEntries = callable.size();
+		const uint32_t size = callableEntries ? utils::roundUpToMultipleOfPowerOf2(callableEntries * shaderGroupHandleSizeAligned, shaderGroupBaseAlignment) : 0u;
 		for (const auto& g : callable) {
 			shaderGroupCreateInfos.emplace_back(vk::RayTracingShaderGroupTypeKHR::eGeneral);
 			shaderGroupCreateInfos.back().setGeneralShader(g.raygen_miss_callable);
