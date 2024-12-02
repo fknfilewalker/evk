@@ -175,12 +175,14 @@ int main(int /*argc*/, char** /*argv*/)
 
         evk::Image& src_image = images[swapchain.currentImageIdx];
         imageMemoryBarrier.image = swapchain.getCurrentImage();
-        imageMemoryBarrier.oldLayout = vk::ImageLayout::eUndefined;
-        imageMemoryBarrier.newLayout = vk::ImageLayout::eTransferDstOptimal;
+        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eUndefined).setNewLayout(vk::ImageLayout::eTransferDstOptimal)
+            .setSrcStageMask(vk::PipelineStageFlagBits2::eAllCommands).setSrcAccessMask({})
+            .setDstStageMask(vk::PipelineStageFlagBits2::eTransfer).setDstAccessMask(vk::AccessFlagBits2::eTransferWrite);
         cb.pipelineBarrier2(dependencyInfo);
         imageMemoryBarrier.image = src_image.image;
-        imageMemoryBarrier.oldLayout = vk::ImageLayout::eGeneral;
-        imageMemoryBarrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
+        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eGeneral).setNewLayout(vk::ImageLayout::eTransferSrcOptimal)
+            .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader).setSrcAccessMask(vk::AccessFlagBits2::eMemoryWrite)
+            .setDstStageMask(vk::PipelineStageFlagBits2::eTransfer).setDstAccessMask(vk::AccessFlagBits2::eTransferRead);
         cb.pipelineBarrier2(dependencyInfo);
 
         auto region = vk::ImageCopy2{}.setExtent(vk::Extent3D{ target.width, target.height, 1 })
@@ -194,12 +196,17 @@ int main(int /*argc*/, char** /*argv*/)
 
         imageMemoryBarrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
         imageMemoryBarrier.newLayout = vk::ImageLayout::eGeneral;
+        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferSrcOptimal).setNewLayout(vk::ImageLayout::eGeneral)
+            .setSrcStageMask(vk::PipelineStageFlagBits2::eTransfer).setSrcAccessMask(vk::AccessFlagBits2::eTransferRead)
+            .setDstStageMask(vk::PipelineStageFlagBits2::eNone).setDstAccessMask(vk::AccessFlagBits2::eNone);
         cb.pipelineBarrier2(dependencyInfo);
         imageMemoryBarrier.image = swapchain.getCurrentImage();
-        imageMemoryBarrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
-        imageMemoryBarrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
+        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal).setNewLayout(vk::ImageLayout::ePresentSrcKHR)
+            .setSrcStageMask(vk::PipelineStageFlagBits2::eTransfer).setSrcAccessMask(vk::AccessFlagBits2::eTransferWrite)
+            .setDstStageMask(vk::PipelineStageFlagBits2::eNone).setDstAccessMask(vk::AccessFlagBits2::eNone);
+
         cb.pipelineBarrier2(dependencyInfo);
-        swapchain.submitImage(device->getQueue(queueFamilyIndex.value(), 0));
+        swapchain.submitImage(device->getQueue(queueFamilyIndex.value(), 0), vk::PipelineStageFlagBits2::eComputeShader);
     }
     device->waitIdle();
     glfwDestroyWindow(window);

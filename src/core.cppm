@@ -399,12 +399,14 @@ export namespace evk
             frame.commandBuffer.begin({});
         }
 
-        EVK_API void submitImage(const vk::raii::Queue& presentQueue, const vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eNone) {
+        EVK_API void submitImage(const vk::raii::Queue& presentQueue, const vk::PipelineStageFlags2 waitDstStageMask = vk::PipelineStageFlagBits2::eNone) {
             auto& frame = frames.back();
             frame.commandBuffer.end();
 
-            presentQueue.submit(vk::SubmitInfo{ *frame.imageAvailableSemaphore,
-                { waitDstStageMask },* frame.commandBuffer,* frame.renderFinishedSemaphore });
+            vk::SemaphoreSubmitInfo wait = { *frame.imageAvailableSemaphore, {}, waitDstStageMask };
+            vk::CommandBufferSubmitInfo present = { *frame.commandBuffer };
+            vk::SemaphoreSubmitInfo signal = { *frame.renderFinishedSemaphore, {}, vk::PipelineStageFlagBits2::eAllCommands };
+            presentQueue.submit2(vk::SubmitInfo2{ {}, wait, present, signal });
             vk::SwapchainPresentFenceInfoEXT presentFenceInfo{ *frame.presentFinishFence };
             try { auto _ = presentQueue.presentKHR({ *frame.renderFinishedSemaphore, *swapchain, currentImageIdx, {}, &presentFenceInfo }); }
             catch (const vk::OutOfDateKHRError&) { presentQueue.waitIdle(); frames.clear(); createSwapchain(); } // win32

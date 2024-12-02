@@ -142,9 +142,10 @@ int main(int /*argc*/, char** /*argv*/)
         const auto& cFrame = swapchain.getCurrentFrame();
         const auto& cb = cFrame.commandBuffer;
 
-        imageMemoryBarrier.image = swapchain.getCurrentImage();
-        imageMemoryBarrier.oldLayout = vk::ImageLayout::eUndefined;
-        imageMemoryBarrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
+        imageMemoryBarrier.setImage(swapchain.getCurrentImage())
+            .setOldLayout(vk::ImageLayout::eUndefined).setNewLayout(vk::ImageLayout::eColorAttachmentOptimal)
+            .setSrcStageMask(vk::PipelineStageFlagBits2::eAllCommands).setSrcAccessMask({})
+            .setDstStageMask(vk::PipelineStageFlagBits2::eColorAttachmentOutput).setDstAccessMask(vk::AccessFlagBits2::eColorAttachmentWrite);
         cb.pipelineBarrier2(dependencyInfo);
 
         vk::RenderingAttachmentInfo rAttachmentInfo{ *swapchain.getCurrentImageView(), vk::ImageLayout::eColorAttachmentOptimal };
@@ -181,10 +182,11 @@ int main(int /*argc*/, char** /*argv*/)
         }
         cb.endRendering();
 
-        imageMemoryBarrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
-        imageMemoryBarrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
+        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eColorAttachmentOptimal).setNewLayout(vk::ImageLayout::ePresentSrcKHR)
+            .setSrcStageMask(vk::PipelineStageFlagBits2::eColorAttachmentOutput).setSrcAccessMask(vk::AccessFlagBits2::eColorAttachmentWrite)
+            .setDstStageMask(vk::PipelineStageFlagBits2::eNone).setDstAccessMask(vk::AccessFlagBits2::eNone);
         cb.pipelineBarrier2(dependencyInfo);
-        swapchain.submitImage(device->getQueue(queueFamilyIndex.value(), 0), vk::PipelineStageFlagBits::eColorAttachmentOutput);
+        swapchain.submitImage(device->getQueue(queueFamilyIndex.value(), 0), vk::PipelineStageFlagBits2::eColorAttachmentOutput);
     }
     device->waitIdle();
     glfwDestroyWindow(window);
