@@ -61,6 +61,16 @@ export namespace evk {
         template<typename T> EVK_API bool remExtOrLayerIfNotAvailable(std::vector<const char*>& extensions, const std::vector<T>& available, const char* requested);
         template<typename T> EVK_API void remExtsOrLayersIfNotAvailable(std::vector<const char*>& extensions, const std::vector<T>& available, const std::function<void(const char*)>& removeCallback = {});
 
+        template<typename T, typename U>
+        EVK_API void chain(T&& first, U&& second) {
+            std::forward<T>(first).setPNext(&std::forward<U>(second));
+        }
+
+        template<typename T, typename U, typename ... Rest>
+        EVK_API void chain(T&& first, U&& second, Rest&& ... rest) {
+            std::forward<T>(first).setPNext(&std::forward<U>(second));
+            chain(std::forward<U>(second), std::forward<Rest>(rest)...);
+        }
 
         EVK_API std::optional<uint32_t> findQueueFamilyIndex(
             const std::vector<vk::QueueFamilyProperties>& queueFamiliesProperties,
