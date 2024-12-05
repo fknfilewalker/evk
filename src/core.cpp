@@ -159,7 +159,7 @@ Image::Image(
 
     const vk::ImageViewType imageViewType = utils::extentToImageViewType(extent);
     imageView = vk::raii::ImageView{ *dev, vk::ImageViewCreateInfo{ {}, *image, imageViewType, format,
-        {}, { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 } } };
+        {}, { aspectMask, 0, 1, 0, 1 } } };
 
     //imageViewAddressProperties = imageView.getAddressNVX();
 
