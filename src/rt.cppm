@@ -300,21 +300,21 @@ export namespace evk::rt {
 		EVK_API TopLevelAccelerationStructure() : _instanceCount{ 0 }, accelerationStructure { nullptr }, deviceAddress{ 0 } {}
 		EVK_API TopLevelAccelerationStructure(
 	        const evk::SharedPtr<evk::Device>& device,
-	        const std::vector<AsInstanceGeometry>& instances,
+            const vk::DeviceAddress instance_addr, const size_t instanceCount,
 	        const vk::GeometryFlagsKHR flags = {},
 	        const vk::BuildAccelerationStructureFlagsKHR buildFlags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace)
-            : device{ device }, _instanceCount{ static_cast<uint32_t>(instances.size()) }, accelerationStructure{ nullptr }, deviceAddress{ 0 }
+            : device{ device }, _instanceCount{ static_cast<uint32_t>(instanceCount) }, accelerationStructure{ nullptr }, deviceAddress{ 0 }
 	    {
-	        { // prepare instance buffer
-	            size_t instanceBufferSize = instances.size() * sizeof(vk::AccelerationStructureInstanceKHR);
-	            instanceBuffer = std::make_unique<evk::Buffer>(device, instanceBufferSize, vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-	                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
-	            void* ptr = instanceBuffer->memory.mapMemory(0, instanceBufferSize);
-	            std::memcpy(ptr, instances.data(), instanceBufferSize);
-	            instanceBuffer->memory.unmapMemory();
-	        }
+	        //{ // prepare instance buffer
+	        //    size_t instanceBufferSize = std::max(instances.size() * sizeof(vk::AccelerationStructureInstanceKHR), 1ull);
+	        //    instanceBuffer = std::make_unique<evk::Buffer>(device, instanceBufferSize, vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+	        //        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
+	        //    void* ptr = instanceBuffer->memory.mapMemory(0, instanceBufferSize);
+	        //    std::memcpy(ptr, instances.data(), instanceBufferSize);
+	        //    instanceBuffer->memory.unmapMemory();
+	        //}
 
-	        _asInstanceData = vk::AccelerationStructureGeometryInstancesDataKHR{}.setData(instanceBuffer->deviceAddress);
+	        _asInstanceData = vk::AccelerationStructureGeometryInstancesDataKHR{}.setData(instance_addr);
 	        _asInstanceGeometry = vk::AccelerationStructureGeometryKHR{}
 	            .setGeometryType(vk::GeometryTypeKHR::eInstances)
 	            .setGeometry(_asInstanceData)
@@ -367,7 +367,6 @@ export namespace evk::rt {
         vk::AccelerationStructureGeometryInstancesDataKHR _asInstanceData;
         vk::AccelerationStructureGeometryKHR _asInstanceGeometry;
 
-	    std::unique_ptr<evk::Buffer> instanceBuffer;
 	    vk::raii::AccelerationStructureKHR accelerationStructure;
 	    vk::DeviceAddress deviceAddress;
 	};
