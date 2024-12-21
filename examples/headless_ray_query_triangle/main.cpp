@@ -88,7 +88,7 @@ int main(int /*argc*/, char** /*argv*/)
     cb.pipelineBarrier2({ {}, barrier });
  
     std::vector instances = { evk::rt::AsInstanceGeometry{}.setAccelerationStructureReference(blas.deviceAddress).setMask(0xFF).setTransform(evk::rt::identityMatrix) };
-    size_t instanceBufferSize = std::max(instances.size() * sizeof(vk::AccelerationStructureInstanceKHR), 1ull);
+    size_t instanceBufferSize = instances.size() * sizeof(vk::AccelerationStructureInstanceKHR);
     auto instanceBuffer = evk::Buffer(device, instanceBufferSize, vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
     void* ptr = instanceBuffer.memory.mapMemory(0, instanceBufferSize);

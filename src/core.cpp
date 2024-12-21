@@ -6,6 +6,7 @@ module;
 #include <variant>
 #include <memory>
 #include <cstring>
+#include <deque>
 module evk;
 import :core;
 import :utils;
