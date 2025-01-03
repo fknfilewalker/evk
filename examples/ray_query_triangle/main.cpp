@@ -102,8 +102,16 @@ int main(int /*argc*/, char** /*argv*/)
         vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR, vk::AccessFlagBits2::eAccelerationStructureWriteKHR
     };
     stcb.pipelineBarrier2({ {}, barrier });
-    auto instances = evk::rt::AsInstanceGeometry{}.setAccelerationStructureReference(blas.deviceAddress).setMask(0xFF).setTransform(evk::rt::identityMatrix);
-    auto tlas = evk::rt::TopLevelAccelerationStructure{ device, { instances } };
+
+    std::vector instances = { evk::rt::AsInstanceGeometry{}.setAccelerationStructureReference(blas.deviceAddress).setMask(0xFF).setTransform(evk::rt::identityMatrix) };
+    size_t instanceBufferSize = instances.size() * sizeof(vk::AccelerationStructureInstanceKHR);
+    auto instanceBuffer = evk::Buffer(device, instanceBufferSize, vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
+    void* ptr = instanceBuffer.memory.mapMemory(0, instanceBufferSize);
+    std::memcpy(ptr, instances.data(), instanceBufferSize);
+    instanceBuffer.memory.unmapMemory();
+
+    auto tlas = evk::rt::TopLevelAccelerationStructure{ device, instanceBuffer.deviceAddress, 1 };
     tlas.cmdBuild(stcb);
     stcb.end();
     device->getQueue(queueFamilyIndex.value(), 0).submitAndWaitIdle(vk::SubmitInfo{ {}, {}, *stcb }, nullptr);
