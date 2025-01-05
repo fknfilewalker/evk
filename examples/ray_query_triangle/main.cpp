@@ -143,7 +143,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::vector<evk::DescriptorSet> descriptorSets;
     descriptorSets.reserve(swapchain.imageCount());
     for (uint32_t i = 0; i < swapchain.imageCount(); i++) {
-        images.emplace_back(device, vk::Extent3D{ target.width, target.height, 1 }, sFormat.value().format, vk::ImageTiling::eOptimal,
+        images.emplace_back(device, vk::Extent3D{ sCapabilities.currentExtent.width, sCapabilities.currentExtent.height, 1 }, sFormat.value().format, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eDeviceLocal);
         images.back().transitionLayout(vk::ImageLayout::eGeneral);
     	descriptorSets.emplace_back(device, descriptorSetLayout);
@@ -155,8 +155,8 @@ int main(int /*argc*/, char** /*argv*/)
     // https://github.com/KhronosGroup/Vulkan-Docs/blob/main/proposals/VK_EXT_shader_object.adoc
     const std::array workGroupSize = { device->subgroupProperties.subgroupSize / 4u, 4u }; // image usually width > height
     const std::array workGroupCount = {
-        static_cast<uint32_t>(std::ceil(target.width / workGroupSize[0])),
-        static_cast<uint32_t>(std::ceil(target.height / workGroupSize[1])) };
+        static_cast<uint32_t>(std::ceil(sCapabilities.currentExtent.width / workGroupSize[0])),
+        static_cast<uint32_t>(std::ceil(sCapabilities.currentExtent.height / workGroupSize[1])) };
     evk::ShaderSpecialization shaderSpecialization{ {
         { 0u, 0u, sizeof(uint32_t) },
         { 1u, sizeof(uint32_t), sizeof(uint32_t) }
@@ -193,7 +193,7 @@ int main(int /*argc*/, char** /*argv*/)
             .setDstStageMask(vk::PipelineStageFlagBits2::eTransfer).setDstAccessMask(vk::AccessFlagBits2::eTransferRead);
         cb.pipelineBarrier2(dependencyInfo);
 
-        auto region = vk::ImageCopy2{}.setExtent(vk::Extent3D{ target.width, target.height, 1 })
+        auto region = vk::ImageCopy2{}.setExtent(vk::Extent3D{ sCapabilities.currentExtent.width, sCapabilities.currentExtent.height, 1 })
             .setSrcSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 })
             .setDstSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 });
         auto copy_info = vk::CopyImageInfo2KHR{}
