@@ -117,17 +117,36 @@ Buffer::Buffer(
     vk::DeviceSize size,
     const vk::BufferUsageFlags usageFlags,
     const vk::MemoryPropertyFlags memoryPropertyFlags
-) : Resource{ device }, buffer{ *dev, { {}, size, usageFlags } }, memory{ nullptr }, deviceAddress{ 0 }, size{ size }
+) : Resource{ device }, buffer{ *dev, { {}, size, usageFlags } }, memory{ nullptr }, deviceAddress{ 0 }, size{ size }, _usageFlags{ usageFlags }, _memoryPropertyFlags{ memoryPropertyFlags }
 {
     const auto memoryRequirements = buffer.getMemoryRequirements();
-    const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, memoryPropertyFlags);
+    const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, _memoryPropertyFlags);
     if (!memoryTypeIndex.has_value()) throw std::runtime_error{ "No memory type index found" };
     constexpr vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress };
     const vk::MemoryAllocateInfo memoryAllocateInfo{ memoryRequirements.size, memoryTypeIndex.value(), &memoryAllocateFlagsInfo };
     memory = vk::raii::DeviceMemory{ *dev, memoryAllocateInfo };
     buffer.bindMemory(*memory, 0);
 
-    if (usageFlags & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
+    if (_usageFlags & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
+        const vk::BufferDeviceAddressInfo bufferDeviceAddressInfo{ *buffer };
+        deviceAddress = dev->getBufferAddress(bufferDeviceAddressInfo); /* for bindless rendering */
+    }
+}
+
+void Buffer::resize(const vk::DeviceSize& s)
+{
+    if (s == size) return;
+    size = s;
+    buffer = vk::raii::Buffer{ *dev, { {}, size, _usageFlags } };
+    const auto memoryRequirements = buffer.getMemoryRequirements();
+    const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, _memoryPropertyFlags);
+    if (!memoryTypeIndex.has_value()) throw std::runtime_error{ "No memory type index found" };
+    constexpr vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress };
+    const vk::MemoryAllocateInfo memoryAllocateInfo{ memoryRequirements.size, memoryTypeIndex.value(), &memoryAllocateFlagsInfo };
+    memory = vk::raii::DeviceMemory{ *dev, memoryAllocateInfo };
+    buffer.bindMemory(*memory, 0);
+
+    if (_usageFlags & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
         const vk::BufferDeviceAddressInfo bufferDeviceAddressInfo{ *buffer };
         deviceAddress = dev->getBufferAddress(bufferDeviceAddressInfo); /* for bindless rendering */
     }
@@ -141,17 +160,16 @@ Image::Image(
     const vk::ImageUsageFlags usageFlags,
     const vk::MemoryPropertyFlags memoryPropertyFlags
 ) : Resource{ device }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, extent{ extent }, format{ format }, 
-    aspectMask{ utils::formatToAspectMask(format) }, layout{ vk::ImageLayout::eUndefined }
+    aspectMask{ utils::formatToAspectMask(format) }, layout{ vk::ImageLayout::eUndefined }, _tiling{ tiling }, _usageFlags{ usageFlags }, _memoryPropertyFlags{ memoryPropertyFlags }
 {
     const vk::ImageType imageType = utils::extentToImageType(extent);
-
     const vk::ImageCreateInfo imageCreateInfo{ {}, imageType, format, extent,
-    	1, 1, vk::SampleCountFlagBits::e1, tiling,
-    	usageFlags
+        1, 1, vk::SampleCountFlagBits::e1, _tiling,
+        _usageFlags
     };
     image = vk::raii::Image{ *dev, imageCreateInfo };
     const auto memoryRequirements = dev->getImageMemoryRequirements2({ *image }).memoryRequirements;
-    const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, memoryPropertyFlags);
+    const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, _memoryPropertyFlags);
     if (!memoryTypeIndex.has_value()) throw std::runtime_error{ "No memory type index found" };
     constexpr vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress };
     const vk::MemoryAllocateInfo memoryAllocateInfo{ memoryRequirements.size, memoryTypeIndex.value(), &memoryAllocateFlagsInfo };
@@ -174,6 +192,29 @@ Image::Image(
 
         int x = 2;
     }
+}
+
+void Image::resize(vk::Extent3D ex)
+{
+    extent = ex;
+    const vk::ImageType imageType = utils::extentToImageType(extent);
+    const vk::ImageCreateInfo imageCreateInfo{ {}, imageType, format, extent,
+        1, 1, vk::SampleCountFlagBits::e1, _tiling,
+        _usageFlags
+    };
+    image = vk::raii::Image{ *dev, imageCreateInfo };
+    const auto memoryRequirements = dev->getImageMemoryRequirements2({ *image }).memoryRequirements;
+    const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, _memoryPropertyFlags);
+    if (!memoryTypeIndex.has_value()) throw std::runtime_error{ "No memory type index found" };
+    constexpr vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress };
+    const vk::MemoryAllocateInfo memoryAllocateInfo{ memoryRequirements.size, memoryTypeIndex.value(), &memoryAllocateFlagsInfo };
+    memory = vk::raii::DeviceMemory{ *dev, memoryAllocateInfo };
+    image.bindMemory(*memory, 0);
+
+    const vk::ImageViewType imageViewType = utils::extentToImageViewType(extent);
+    imageView = vk::raii::ImageView{ *dev, vk::ImageViewCreateInfo{ {}, *image, imageViewType, format,
+        {}, { aspectMask, 0, 1, 0, 1 } } };
+    layout = vk::ImageLayout::eUndefined;
 }
 
 void Image::transitionLayout(const vk::ImageLayout newLayout)

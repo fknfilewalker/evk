@@ -128,15 +128,19 @@ export namespace evk
             vk::BufferUsageFlags usageFlags,
             vk::MemoryPropertyFlags memoryPropertyFlags
         );
+        EVK_API void resize(const vk::DeviceSize& s);
         vk::raii::Buffer buffer;
         vk::raii::DeviceMemory memory;
         vk::DeviceAddress deviceAddress;
         vk::DeviceSize size;
+
+        vk::BufferUsageFlags _usageFlags;
+        vk::MemoryPropertyFlags _memoryPropertyFlags;
     };
 
     struct Image : Resource
     {
-        EVK_API Image() : Resource{ nullptr }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, format{ vk::Format::eUndefined }, layout{ vk::ImageLayout::eUndefined } {}
+        EVK_API Image() : Resource{ nullptr }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, format{ vk::Format::eUndefined }, layout{ vk::ImageLayout::eUndefined }, _tiling{} {}
         EVK_API Image(
             const evk::SharedPtr<Device>& device,
             vk::Extent3D extent,
@@ -146,6 +150,7 @@ export namespace evk
             vk::MemoryPropertyFlags memoryPropertyFlags
         );
 
+        EVK_API void resize(vk::Extent3D ex);
         EVK_API void transitionLayout(vk::ImageLayout newLayout);
         EVK_API void copyMemoryToImage(const void* ptr) const;
         EVK_API void copyImageToMemory(void* ptr) const;
@@ -159,6 +164,10 @@ export namespace evk
         vk::Format format;
         vk::ImageAspectFlags aspectMask;
         vk::ImageLayout layout;
+
+        vk::ImageTiling _tiling;
+        vk::ImageUsageFlags _usageFlags;
+        vk::MemoryPropertyFlags _memoryPropertyFlags;
     };
 
     struct MutableDescriptorSetLayout : Resource
