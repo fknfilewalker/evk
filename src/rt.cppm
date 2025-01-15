@@ -23,7 +23,7 @@ export namespace evk::rt {
                 Triangles = static_cast<uint32_t>(vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup),
                 Procedural = static_cast<uint32_t>(vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup)
             };
-			HitGroup(const Type type, const std::optional<uint32_t> closestHit, const std::optional<uint32_t> anyHit = {}, const std::optional<uint32_t> intersection = {}) : type{ type },
+			HitGroup(const Type type, const std::optional<uint32_t> closestHit = {}, const std::optional<uint32_t> anyHit = {}, const std::optional<uint32_t> intersection = {}) : type{ type },
 				closestHit{ closestHit.value_or(vk::ShaderUnusedKHR) }, anyHit{ anyHit.value_or(vk::ShaderUnusedKHR) }, intersection{ intersection.value_or(vk::ShaderUnusedKHR) } {}
             Type type;
 		    uint32_t closestHit, anyHit, intersection;
