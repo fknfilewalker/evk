@@ -160,38 +160,22 @@ Image::Image(
     const vk::ImageUsageFlags usageFlags,
     const vk::MemoryPropertyFlags memoryPropertyFlags
 ) : Resource{ device }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, extent{ extent }, format{ format }, 
-    aspectMask{ utils::formatToAspectMask(format) }, layout{ vk::ImageLayout::eUndefined }, _tiling{ tiling }, _usageFlags{ usageFlags }, _memoryPropertyFlags{ memoryPropertyFlags }
+    aspectMask{ utils::formatToAspectMask(format) }, _tiling{ tiling }, _usageFlags{ usageFlags }, _memoryPropertyFlags{ memoryPropertyFlags }
 {
-    const vk::ImageType imageType = utils::extentToImageType(extent);
-    const vk::ImageCreateInfo imageCreateInfo{ {}, imageType, format, extent,
-        1, 1, vk::SampleCountFlagBits::e1, _tiling,
-        _usageFlags
-    };
-    image = vk::raii::Image{ *dev, imageCreateInfo };
-    const auto memoryRequirements = dev->getImageMemoryRequirements2({ *image }).memoryRequirements;
-    const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, _memoryPropertyFlags);
-    if (!memoryTypeIndex.has_value()) throw std::runtime_error{ "No memory type index found" };
-    constexpr vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress };
-    const vk::MemoryAllocateInfo memoryAllocateInfo{ memoryRequirements.size, memoryTypeIndex.value(), &memoryAllocateFlagsInfo };
-    memory = vk::raii::DeviceMemory{ *dev, memoryAllocateInfo };
-    image.bindMemory(*memory, 0);
-
-    const vk::ImageViewType imageViewType = utils::extentToImageViewType(extent);
-    imageView = vk::raii::ImageView{ *dev, vk::ImageViewCreateInfo{ {}, *image, imageViewType, format,
-        {}, { aspectMask, 0, 1, 0, 1 } } };
+    resize(extent);
 
     //imageViewAddressProperties = imageView.getAddressNVX();
 
-    {
-        auto properties = device->physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceHostImageCopyPropertiesEXT>();
-        auto hostImageCopyProperties = properties.get<vk::PhysicalDeviceHostImageCopyPropertiesEXT>();
+    //{
+    //    auto properties = device->physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceHostImageCopyPropertiesEXT>();
+    //    auto hostImageCopyProperties = properties.get<vk::PhysicalDeviceHostImageCopyPropertiesEXT>();
 
-        auto imageFormatInfo = vk::PhysicalDeviceImageFormatInfo2{ format, imageType, tiling, usageFlags, {} };
-        //auto formatProperties = device->physicalDevice.getImageFormatProperties2<vk::ImageFormatProperties2, vk::HostImageCopyDevicePerformanceQueryEXT>(imageFormatInfo);
-        //auto hostImageCopyDevicePerformanceQuery = formatProperties.get<vk::HostImageCopyDevicePerformanceQueryEXT>();
+    //    auto imageFormatInfo = vk::PhysicalDeviceImageFormatInfo2{ format, imageType, tiling, usageFlags, {} };
+    //    //auto formatProperties = device->physicalDevice.getImageFormatProperties2<vk::ImageFormatProperties2, vk::HostImageCopyDevicePerformanceQueryEXT>(imageFormatInfo);
+    //    //auto hostImageCopyDevicePerformanceQuery = formatProperties.get<vk::HostImageCopyDevicePerformanceQueryEXT>();
 
-        int x = 2;
-    }
+    //    int x = 2;
+    //}
 }
 
 void Image::resize(vk::Extent3D ex)
@@ -214,22 +198,24 @@ void Image::resize(vk::Extent3D ex)
     const vk::ImageViewType imageViewType = utils::extentToImageViewType(extent);
     imageView = vk::raii::ImageView{ *dev, vk::ImageViewCreateInfo{ {}, *image, imageViewType, format,
         {}, { aspectMask, 0, 1, 0, 1 } } };
-    layout = vk::ImageLayout::eUndefined;
+    barrier.oldLayout = vk::ImageLayout::eUndefined;
+    barrier.image = *image;
+    barrier.subresourceRange = { aspectMask, 0, 1, 0, 1 };
 }
 
 void Image::transitionLayout(const vk::ImageLayout newLayout)
 {
     const vk::ImageSubresourceRange imageSubresourceRange{ aspectMask, 0, 1, 0, 1 };
-    const vk::HostImageLayoutTransitionInfoEXT hostImageLayoutTransitionInfoEXT{ *image, layout, newLayout, imageSubresourceRange };
+    const vk::HostImageLayoutTransitionInfoEXT hostImageLayoutTransitionInfoEXT{ *image, barrier.oldLayout, newLayout, imageSubresourceRange };
     dev->transitionImageLayoutEXT(hostImageLayoutTransitionInfoEXT);
-    layout = newLayout;
+    barrier.oldLayout = newLayout;
 }
 void Image::copyMemoryToImage(const void* ptr) const
 {
     const auto memoryToImageCopy = vk::MemoryToImageCopyEXT{ ptr }
         .setImageExtent(extent)
         .setImageSubresource({ aspectMask, 0, 0, 1 });
-    const vk::CopyMemoryToImageInfoEXT copyMemoryToImageInfo{ {}, *image, layout, memoryToImageCopy };
+    const vk::CopyMemoryToImageInfoEXT copyMemoryToImageInfo{ {}, *image, barrier.oldLayout, memoryToImageCopy };
     dev->copyMemoryToImageEXT(copyMemoryToImageInfo);
 }
 void Image::copyImageToMemory(void* ptr) const
@@ -237,7 +223,7 @@ void Image::copyImageToMemory(void* ptr) const
     const auto imageToMemoryCopy = vk::ImageToMemoryCopyEXT{ ptr }
         .setImageExtent(extent)
         .setImageSubresource({ aspectMask, 0, 0, 1 });
-    const vk::CopyImageToMemoryInfoEXT copyImageToMemoryInfo{ {}, *image, layout, imageToMemoryCopy };
+    const vk::CopyImageToMemoryInfoEXT copyImageToMemoryInfo{ {}, *image, barrier.oldLayout, imageToMemoryCopy };
     dev->copyImageToMemoryEXT(copyImageToMemoryInfo);
 }
 

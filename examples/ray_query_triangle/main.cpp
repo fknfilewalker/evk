@@ -70,7 +70,8 @@ int main(int /*argc*/, char** /*argv*/)
     vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{ true, &indexingFeatures };
     vk::PhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ true, false, false, &rayQueryFeatures };
     vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &bufferDeviceAddressFeatures };
-    vk::PhysicalDeviceSynchronization2Features synchronization2Features{ true, &shaderObjectFeatures };
+    vk::PhysicalDeviceHostImageCopyFeaturesEXT hostImageCopyFeatures{ true, &shaderObjectFeatures };
+    vk::PhysicalDeviceSynchronization2Features synchronization2Features{ true, &hostImageCopyFeatures };
     vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{ true, &synchronization2Features };
     vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &dynamicRenderingFeatures };
     physicalDeviceFeatures2.features.shaderInt64 = true;

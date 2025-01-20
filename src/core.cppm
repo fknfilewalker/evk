@@ -138,9 +138,34 @@ export namespace evk
         vk::MemoryPropertyFlags _memoryPropertyFlags;
     };
 
+    struct ImageMemoryBarrier2 : vk::ImageMemoryBarrier2 {
+
+        constexpr ImageMemoryBarrier2& reset_src()
+        {
+            this->setSrcStageMask(vk::PipelineStageFlagBits2::eAllCommands).setSrcAccessMask({});
+            return *this;
+        }
+        constexpr ImageMemoryBarrier2& reset_dst()
+        {
+            this->setDstStageMask(vk::PipelineStageFlagBits2::eAllCommands).setDstAccessMask({});
+            return *this;
+        }
+        constexpr ImageMemoryBarrier2& swap_src_dst()
+        {
+            srcStageMask = dstStageMask;
+            srcAccessMask = dstAccessMask;
+            newLayout = oldLayout;
+            dstStageMask = {};
+            dstAccessMask = {};
+            oldLayout = {};
+            return *this;
+        }
+        [[nodiscard]] bool is_layout(vk::ImageLayout l) const { return oldLayout == l; }
+    };
+
     struct Image : Resource
     {
-        EVK_API Image() : Resource{ nullptr }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, format{ vk::Format::eUndefined }, layout{ vk::ImageLayout::eUndefined }, _tiling{} {}
+        EVK_API Image() : Resource{ nullptr }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, format{ vk::Format::eUndefined }, _tiling{} {}
         EVK_API Image(
             const evk::SharedPtr<Device>& device,
             vk::Extent3D extent,
@@ -163,7 +188,7 @@ export namespace evk
         vk::Extent3D extent;
         vk::Format format;
         vk::ImageAspectFlags aspectMask;
-        vk::ImageLayout layout;
+        vk::ImageMemoryBarrier2 barrier;
 
         vk::ImageTiling _tiling;
         vk::ImageUsageFlags _usageFlags;
