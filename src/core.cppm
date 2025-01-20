@@ -154,13 +154,18 @@ export namespace evk
         {
             srcStageMask = dstStageMask;
             srcAccessMask = dstAccessMask;
-            newLayout = oldLayout;
+            oldLayout = newLayout;
             dstStageMask = {};
             dstAccessMask = {};
-            oldLayout = {};
+            newLayout = {};
+            return *this;
+        }
+        ImageMemoryBarrier2& pipelineBarrier(const vk::raii::CommandBuffer& cb) {
+            cb.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(*this));
             return *this;
         }
         [[nodiscard]] bool is_layout(vk::ImageLayout l) const { return oldLayout == l; }
+        [[nodiscard]] bool is_not_layout(vk::ImageLayout l) const { return oldLayout != l; }
     };
 
     struct Image : Resource
@@ -188,7 +193,7 @@ export namespace evk
         vk::Extent3D extent;
         vk::Format format;
         vk::ImageAspectFlags aspectMask;
-        vk::ImageMemoryBarrier2 barrier;
+        evk::ImageMemoryBarrier2 barrier;
 
         vk::ImageTiling _tiling;
         vk::ImageUsageFlags _usageFlags;
