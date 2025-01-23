@@ -33,12 +33,14 @@ void Queue::submit2AndWaitIdle(vk::ArrayProxy<const vk::SubmitInfo2> const& subm
 }
 
 Device::Device(
+    const evk::SharedPtr<Instance>& instance,
     const vk::raii::PhysicalDevice& physicalDevice,
     const std::vector<const char*>& extensions,
     const Queues& queues,
     void* pNext
 ) : vk::raii::Device{ nullptr }, physicalDevice{ physicalDevice }, memoryProperties{ physicalDevice.getMemoryProperties() }
 {
+    _instance = instance;
     const auto prop = physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceSubgroupProperties, vk::PhysicalDeviceRayTracingPipelinePropertiesKHR, vk::PhysicalDeviceAccelerationStructurePropertiesKHR, vk::PhysicalDeviceDescriptorBufferPropertiesEXT>();
     properties = prop.get<vk::PhysicalDeviceProperties2>().properties;
     subgroupProperties = prop.get<vk::PhysicalDeviceSubgroupProperties>();

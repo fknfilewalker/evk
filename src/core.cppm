@@ -27,7 +27,7 @@ export namespace evk
     }
 
     // only here for single line creation
-    struct Instance : vk::raii::Instance
+    struct Instance : vk::raii::Instance, Shareable<Instance>
     {
         EVK_API Instance() : vk::raii::Instance{ nullptr } {}
         EVK_API Instance(
@@ -45,7 +45,8 @@ export namespace evk
 	    EVK_API void submit2AndWaitIdle(vk::ArrayProxy<const vk::SubmitInfo2> const& submits, vk::Fence fence) const;
     };
 
-    struct Device : vk::raii::Device, Shareable<Device>
+    struct InstanceLink { evk::SharedPtr<Instance> _instance; };
+    struct Device : InstanceLink, vk::raii::Device, Shareable<Device>
     {
         using QueueFamily = uint32_t;
         using QueueCount = uint32_t;
@@ -53,6 +54,7 @@ export namespace evk
 
         EVK_API Device() : vk::raii::Device{ nullptr }, physicalDevice{ nullptr }{}
         EVK_API Device(
+            const evk::SharedPtr<Instance>& instance,
             const vk::raii::PhysicalDevice& physicalDevice,
             const std::vector<const char*>& extensions,
             const Queues& queues,

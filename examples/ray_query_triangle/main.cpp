@@ -37,7 +37,7 @@ int main(int /*argc*/, char** /*argv*/)
     const auto& ctx = evk::context();
     evk::utils::remExtsOrLayersIfNotAvailable(iExtensions, ctx.enumerateInstanceExtensionProperties(), [](const char* e) { std::printf("Extension removed because not available: %s\n", e); });
     evk::utils::remExtsOrLayersIfNotAvailable(iLayers, ctx.enumerateInstanceLayerProperties(), [](const char* e) { std::printf("Layer removed because not available: %s\n", e); });
-    evk::Instance instance{ ctx, {}, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion13 }, iLayers, iExtensions };
+    auto instance = evk::Instance::shared(ctx, vk::InstanceCreateFlags{}, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion13 }, iLayers, iExtensions);
 
     // Surface Setup
 #ifdef VK_USE_PLATFORM_WIN32_KHR
@@ -47,7 +47,7 @@ int main(int /*argc*/, char** /*argv*/)
 #endif
 
     // Device setup
-    const vk::raii::PhysicalDevices physicalDevices{ instance };
+    const vk::raii::PhysicalDevices physicalDevices{ *instance };
     const vk::raii::PhysicalDevice& physicalDevice{ physicalDevices[0] };
     // * find queue
     const auto queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
@@ -76,7 +76,7 @@ int main(int /*argc*/, char** /*argv*/)
     vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &dynamicRenderingFeatures };
     physicalDeviceFeatures2.features.shaderInt64 = true;
     // * create device
-    auto device = evk::make_shared<evk::Device>(physicalDevice, dExtensions, evk::Device::Queues{ {queueFamilyIndex.value(), 1} }, &physicalDeviceFeatures2);
+    auto device = evk::Device::shared(instance, physicalDevice, dExtensions, evk::Device::Queues{ {queueFamilyIndex.value(), 1} }, &physicalDeviceFeatures2);
     // Vertex buffer setup (triangle is upside down on purpose)
     const std::vector vertices = {
         -0.5f, -0.5f, 0.0f,

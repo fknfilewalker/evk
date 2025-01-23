@@ -34,7 +34,7 @@ int main(int /*argc*/, char** /*argv*/)
     const auto& ctx = evk::context();
     evk::utils::remExtsOrLayersIfNotAvailable(iExtensions, ctx.enumerateInstanceExtensionProperties(), [](const char* e) { std::printf("Extension removed because not available: %s\n", e); });
     evk::utils::remExtsOrLayersIfNotAvailable(iLayers, ctx.enumerateInstanceLayerProperties(), [](const char* e) { std::printf("Layer removed because not available: %s\n", e); });
-    evk::Instance instance{ ctx, {}, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion13 }, iLayers, iExtensions };
+    auto instance = evk::Instance::shared(ctx, vk::InstanceCreateFlags{}, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion13 }, iLayers, iExtensions);
 
     // Device setup
     const vk::raii::PhysicalDevices physicalDevices{ instance };
@@ -55,7 +55,7 @@ int main(int /*argc*/, char** /*argv*/)
     vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &mutableDescriptorTypeFeatures };
     physicalDeviceFeatures2.features.shaderInt64 = true;
     // * create device
-    auto device = evk::make_shared<evk::Device>(physicalDevice, dExtensions, evk::Device::Queues{ {queueFamilyIndex.value(), 1} }, &physicalDeviceFeatures2);
+    auto device = evk::make_shared<evk::Device>(instance, physicalDevice, dExtensions, evk::Device::Queues{ {queueFamilyIndex.value(), 1} }, &physicalDeviceFeatures2);
 
     std::vector types = { vk::DescriptorType::eSampledImage, vk::DescriptorType::eSampler, vk::DescriptorType::eStorageImage };
     vk::MutableDescriptorTypeListEXT mutate { types };

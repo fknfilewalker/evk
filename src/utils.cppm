@@ -134,6 +134,8 @@ export namespace evk {
         EVK_API T& operator*() { return *_ptr; }
         EVK_API const T& operator*() const { return *_ptr; }
 
+        EVK_API operator const T& () const { return *_ptr; }
+
         EVK_API T* get() { return _ptr; }
         EVK_API const T* get() const { return _ptr; }
         EVK_API void reset(T* ptr = nullptr) { decrement(); _ptr = ptr; increment(); }
