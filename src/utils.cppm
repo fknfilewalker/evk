@@ -172,6 +172,8 @@ export namespace evk {
 
     template<typename T>
     struct Shareable {
+        template <typename... Args>
+        static evk::SharedPtr<T> shared(Args&&... args) { return SharedPtr<T>(new T(std::forward<Args>(args)...)); }
     protected:
         uint32_t refCount = 0;
         friend struct SharedPtr<T>;
