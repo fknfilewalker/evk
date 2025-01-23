@@ -121,7 +121,13 @@ export namespace evk {
             return *this;
         }
 
-        EVK_API ~SharedPtr() { decrement(); }
+        EVK_API ~SharedPtr()
+        {
+#ifdef EVK_LOG_REF_COUNT
+            if (_ptr) printf("Decrementing refCount: %d -> %d for %s %p\n", _ptr->refCount, _ptr->refCount - 1, typeid(T).name(), _ptr);
+#endif
+            decrement();
+        }
 
         EVK_API T* operator->() { return _ptr; }
         EVK_API const T* operator->() const { return _ptr; }
@@ -145,7 +151,12 @@ export namespace evk {
         {
             if (_ptr) {
                 _ptr->refCount -= 1;
-                if (_ptr->refCount == 0) delete _ptr;
+                if (_ptr->refCount == 0) {
+#ifdef EVK_LOG_REF_COUNT
+                    printf("-> RIP %s\n", typeid(T).name());
+#endif
+                    delete _ptr;
+                }
             }
         }
         void copy(T* ptr) { _ptr = ptr; increment(); }
@@ -161,7 +172,7 @@ export namespace evk {
 
     template<typename T>
     struct Shareable {
-    private:
+    protected:
         uint32_t refCount = 0;
         friend struct SharedPtr<T>;
     };
