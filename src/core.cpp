@@ -90,14 +90,15 @@ bool Device::imageFormatSupported(const vk::Format format, const vk::ImageType t
 	}
 }
 
-const Queue& Device::getQueue(const QueueFamily queueFamily, const QueueCount queueIndex)
+const Queue& Device::getQueue(const QueueFamily queueFamily, const QueueCount queueIndex) const
 {
     if (queueFamily >= _queues.size()) throw std::out_of_range( "Queue family index out of range" );
     if (queueIndex >= _queues[queueFamily].size()) throw std::out_of_range("Queue index out of range" );
     return _queues[queueFamily][queueIndex];
 }
 
-const Queue& Device::getQueue(const std::pair<QueueFamily, QueueCount>& queueIndices) {
+const Queue& Device::getQueue(const std::pair<QueueFamily, QueueCount>& queueIndices) const
+{
     return getQueue(queueIndices.first, queueIndices.second);
 }
 

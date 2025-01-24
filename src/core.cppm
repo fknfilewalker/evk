@@ -77,11 +77,11 @@ export namespace evk
         EVK_API const Queue& getQueue(
             QueueFamily queueFamily, 
             QueueCount queueIndex = 0
-        );
+        ) const;
 
         EVK_API const Queue& getQueue(
             const std::pair<QueueFamily, QueueCount>& queueIndices
-        );
+        ) const;
 
         EVK_API operator const vk::raii::PhysicalDevice& () const { return physicalDevice; }
 
