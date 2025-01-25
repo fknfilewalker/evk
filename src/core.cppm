@@ -101,7 +101,7 @@ export namespace evk
     // Every resource has a device reference
     struct Resource { evk::SharedPtr<Device> dev; };
 
-    struct CommandPool : Resource
+    struct CommandPool : Resource, Shareable<CommandPool>
     {
         EVK_API CommandPool(
             const evk::SharedPtr<Device>& device,
@@ -170,7 +170,7 @@ export namespace evk
         [[nodiscard]] bool is_not_layout(vk::ImageLayout l) const { return oldLayout != l; }
     };
 
-    struct Image : Resource
+    struct Image : Resource, Shareable<Image>
     {
         EVK_API Image() : Resource{ nullptr }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, format{ vk::Format::eUndefined }, _tiling{} {}
         EVK_API Image(
@@ -253,7 +253,7 @@ export namespace evk
         vk::DescriptorSet set;
     };
 
-    struct DescriptorSetLayout : Resource
+    struct DescriptorSetLayout : Resource, Shareable<DescriptorSetLayout>
     {
         struct Binding : std::pair<vk::DescriptorSetLayoutBinding, vk::DescriptorBindingFlags>
         {
@@ -275,7 +275,7 @@ export namespace evk
         vk::raii::DescriptorSetLayout layout;
     };
 
-    struct DescriptorSet : Resource
+    struct DescriptorSet : Resource, Shareable<DescriptorSet>
     {
         using Descriptor = std::variant<vk::DescriptorImageInfo, vk::DescriptorBufferInfo, vk::BufferView, vk::AccelerationStructureKHR>;
         using Descriptors = std::variant<std::vector<vk::DescriptorImageInfo>, std::vector<vk::DescriptorBufferInfo>, std::vector<vk::BufferView>, std::vector<vk::AccelerationStructureKHR>>;
@@ -365,7 +365,7 @@ export namespace evk
     // stage, spv, entryPoint
     using ShaderStage = std::tuple<const vk::ShaderStageFlagBits, const std::reference_wrapper<const std::vector<uint32_t>>, std::string_view>;
 
-    struct ShaderObject : Resource
+    struct ShaderObject : Resource, Shareable<ShaderObject>
     {
         EVK_API ShaderObject() : Resource{ nullptr }, layout{ nullptr } {}
         EVK_API ShaderObject(
@@ -383,7 +383,7 @@ export namespace evk
         vk::raii::PipelineLayout layout;
     };
 
-    struct Swapchain : Resource
+    struct Swapchain : Resource, Shareable<Swapchain>
     {
         // Data for one frame/image in our swapchain
         struct Frame {
