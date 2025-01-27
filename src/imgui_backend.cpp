@@ -2,6 +2,7 @@ module;
 #include <imgui.h>
 #include <stdexcept>
 #include <memory>
+#include <deque>
 #include <string_view>
 #include <vector>
 module evk.imgui;
