@@ -2,6 +2,7 @@ module;
 #include <imgui.h>
 #include <vector>
 #include <memory>
+#include <deque>
 #include <string_view>
 export module evk.imgui;
 import evk;
@@ -31,12 +32,12 @@ export namespace evk
         evk::DescriptorSetLayout descriptorSetLayout;
 		evk::DescriptorSet descriptorSet;
 		evk::ShaderObject shader;
-		std::vector<std::unique_ptr<evk::Buffer>> vertexBuffers;
+		std::vector<evk::SharedPtr<evk::Buffer>> vertexBuffers;
 		std::vector<void*> vertexBuffersPtr;
-		std::vector<std::unique_ptr<evk::Buffer>> indexBuffers;
+		std::vector<evk::SharedPtr<evk::Buffer>> indexBuffers;
 		std::vector<void*> indexBuffersPtr;
-		std::vector<std::unique_ptr<evk::Buffer>> vertexBuffersToBeDeleted;
-		std::vector<std::unique_ptr<evk::Buffer>> indexBuffersToBeDeleted;
+		std::vector<std::deque<evk::SharedPtr<evk::Buffer>>> vertexBuffersToBeDeleted;
+		std::vector<std::deque<evk::SharedPtr<evk::Buffer>>> indexBuffersToBeDeleted;
 
 		evk::Image fontImage;
 		vk::raii::Sampler sampler;

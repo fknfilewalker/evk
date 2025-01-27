@@ -102,6 +102,7 @@ ImGuiBackend::ImGuiBackend(
 	vertexBuffersPtr.resize(imageCount);
 	indexBuffers.resize(imageCount);
 	indexBuffersPtr.resize(imageCount);
+	auto tmp = std::deque<std::unique_ptr<evk::Buffer>>();
 	vertexBuffersToBeDeleted.resize(imageCount);
 	indexBuffersToBeDeleted.resize(imageCount);
 	{
@@ -153,20 +154,21 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 	const int fb_height = static_cast<int>(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
 	if (fb_width <= 0 || fb_height <= 0) return;
 
-	vertexBuffersToBeDeleted[imageIdx] = {};
-	indexBuffersToBeDeleted[imageIdx] = {};
+	size_t delete_history = 4;
+    while (vertexBuffersToBeDeleted[imageIdx].size() > delete_history) vertexBuffersToBeDeleted[imageIdx].pop_front();
+	while (indexBuffersToBeDeleted[imageIdx].size() > delete_history) indexBuffersToBeDeleted[imageIdx].pop_front();
 	if (draw_data->TotalVtxCount > 0)
 	{
 		const size_t vertex_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
 		const size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
 		if (!vertexBuffers[imageIdx] || vertexBuffers[imageIdx]->size < vertex_size) {
-			vertexBuffersToBeDeleted[imageIdx] = std::move(vertexBuffers[imageIdx]);
-			vertexBuffers[imageIdx] = std::make_unique<evk::Buffer>(dev, vertex_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
+			vertexBuffersToBeDeleted[imageIdx].emplace_back(std::move(vertexBuffers[imageIdx]));
+			vertexBuffers[imageIdx] = evk::Buffer::shared(dev, vertex_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
 			vertexBuffersPtr[imageIdx] = vertexBuffers[imageIdx]->memory.mapMemory(0, vk::WholeSize);
 		}
 		if (!indexBuffers[imageIdx] || indexBuffers[imageIdx]->size < index_size) {
-			indexBuffersToBeDeleted[imageIdx] = std::move(indexBuffers[imageIdx]);
-			indexBuffers[imageIdx] = std::make_unique<evk::Buffer>(dev, index_size, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
+			indexBuffersToBeDeleted[imageIdx].emplace_back(std::move(indexBuffers[imageIdx]));
+			indexBuffers[imageIdx] = evk::Buffer::shared(dev, index_size, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
 			indexBuffersPtr[imageIdx] = indexBuffers[imageIdx]->memory.mapMemory(0, vk::WholeSize);
 		}
 
