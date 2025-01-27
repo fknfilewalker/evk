@@ -159,15 +159,15 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 	{
 		const size_t vertex_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
 		const size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
-		if (vertexBuffers[imageIdx].size < vertex_size) {
+		if (!vertexBuffers[imageIdx] || vertexBuffers[imageIdx]->size < vertex_size) {
 			vertexBuffersToBeDeleted[imageIdx] = std::move(vertexBuffers[imageIdx]);
-			vertexBuffers[imageIdx] = evk::Buffer{ dev, vertex_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
-			vertexBuffersPtr[imageIdx] = vertexBuffers[imageIdx].memory.mapMemory(0, vk::WholeSize);
+			vertexBuffers[imageIdx] = std::make_unique<evk::Buffer>(dev, vertex_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
+			vertexBuffersPtr[imageIdx] = vertexBuffers[imageIdx]->memory.mapMemory(0, vk::WholeSize);
 		}
-		if (indexBuffers[imageIdx].size < index_size) {
+		if (!indexBuffers[imageIdx] || indexBuffers[imageIdx]->size < index_size) {
 			indexBuffersToBeDeleted[imageIdx] = std::move(indexBuffers[imageIdx]);
-			indexBuffers[imageIdx] = evk::Buffer{ dev, index_size, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
-			indexBuffersPtr[imageIdx] = indexBuffers[imageIdx].memory.mapMemory(0, vk::WholeSize);
+			indexBuffers[imageIdx] = std::make_unique<evk::Buffer>(dev, index_size, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal);
+			indexBuffersPtr[imageIdx] = indexBuffers[imageIdx]->memory.mapMemory(0, vk::WholeSize);
 		}
 
 		// Upload vertex/index data into a single contiguous GPU buffer
@@ -217,7 +217,7 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 		cb.setViewportWithCountEXT({ { 0, 0, static_cast<float>(fb_width), static_cast<float>(fb_height) } });
 		cb.bindShadersEXT(shader.stages, shader.shaders);
 		// cb.bindVertexBuffers(0, { vertexBuffers[imageIdx].buffer }, { 0 });
-		cb.bindIndexBuffer(indexBuffers[imageIdx].buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
+		cb.bindIndexBuffer(indexBuffers[imageIdx]->buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
 
 		float scale[2];
 		scale[0] = 2.0f / draw_data->DisplaySize.x;
@@ -226,7 +226,7 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 		translate[0] = -1.0f - draw_data->DisplayPos.x * scale[0];
 		translate[1] = -1.0f - draw_data->DisplayPos.y * scale[1];
 
-		cb.pushConstants<vk::DeviceAddress>(*shader.layout, vk::ShaderStageFlagBits::eVertex, 0, vertexBuffers[imageIdx].deviceAddress);
+		cb.pushConstants<vk::DeviceAddress>(*shader.layout, vk::ShaderStageFlagBits::eVertex, 0, vertexBuffers[imageIdx]->deviceAddress);
 		cb.pushConstants<float[2]>(*shader.layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 2, scale);
 		cb.pushConstants<float[2]>(*shader.layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 4, translate);
 

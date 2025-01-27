@@ -31,12 +31,12 @@ export namespace evk
         evk::DescriptorSetLayout descriptorSetLayout;
 		evk::DescriptorSet descriptorSet;
 		evk::ShaderObject shader;
-		std::vector<evk::Buffer> vertexBuffers;
+		std::vector<std::unique_ptr<evk::Buffer>> vertexBuffers;
 		std::vector<void*> vertexBuffersPtr;
-		std::vector<evk::Buffer> indexBuffers;
+		std::vector<std::unique_ptr<evk::Buffer>> indexBuffers;
 		std::vector<void*> indexBuffersPtr;
-		std::vector<evk::Buffer> vertexBuffersToBeDeleted;
-		std::vector<evk::Buffer> indexBuffersToBeDeleted;
+		std::vector<std::unique_ptr<evk::Buffer>> vertexBuffersToBeDeleted;
+		std::vector<std::unique_ptr<evk::Buffer>> indexBuffersToBeDeleted;
 
 		evk::Image fontImage;
 		vk::raii::Sampler sampler;
