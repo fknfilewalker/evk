@@ -102,12 +102,12 @@ export namespace evk {
     template<typename T>
     struct SharedPtr
     {
-        EVK_API SharedPtr() : _ptr(nullptr) {}
-        EVK_API SharedPtr(std::nullptr_t) : _ptr(nullptr) {}
-        EVK_API SharedPtr(T* ptr) : _ptr(ptr) { increment(); }
+        EVK_API SharedPtr() : _ptr{ nullptr } {}
+        EVK_API SharedPtr(std::nullptr_t) : _ptr{ nullptr } {}
+        EVK_API SharedPtr(T* ptr) : _ptr{ ptr } { increment(); }
         EVK_API SharedPtr(const SharedPtr& other) { copy(other._ptr); }
         EVK_API SharedPtr(const SharedPtr&& other) noexcept { copy(other._ptr); }
-        EVK_API SharedPtr(const T&& data) { reset(new T(std::move(data))); }
+        EVK_API SharedPtr(const T&& data) : _ptr { nullptr } { reset(new T(std::move(data))); }
 
         EVK_API SharedPtr& operator=(const SharedPtr& other)
         {
