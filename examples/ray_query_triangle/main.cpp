@@ -144,7 +144,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::vector<evk::DescriptorSet> descriptorSets;
     descriptorSets.reserve(swapchain.imageCount());
     for (uint32_t i = 0; i < swapchain.imageCount(); i++) {
-        images.emplace_back(device, vk::Extent3D{ sCapabilities.currentExtent.width, sCapabilities.currentExtent.height, 1 }, sFormat.value().format, vk::ImageTiling::eOptimal,
+        images.emplace_back(device, vk::Extent3D{ sCapabilities.currentExtent.width, sCapabilities.currentExtent.height }, sFormat.value().format, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eDeviceLocal);
         images.back().transitionLayout(vk::ImageLayout::eGeneral);
     	descriptorSets.emplace_back(device, descriptorSetLayout);

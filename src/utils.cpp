@@ -120,15 +120,15 @@ std::optional<uint32_t> utils::findMemoryTypeIndex(
 
 vk::ImageType utils::extentToImageType(const vk::Extent3D& extent)
 {
-	if (extent.depth > 1) return vk::ImageType::e3D;
-	if (extent.height > 1) return vk::ImageType::e2D;
+	if (extent.depth > 0) return vk::ImageType::e3D;
+	if (extent.height > 0) return vk::ImageType::e2D;
 	return vk::ImageType::e1D;
 }
 
 vk::ImageViewType utils::extentToImageViewType(const vk::Extent3D& extent)
 {
-	if (extent.depth > 1) return vk::ImageViewType::e3D;
-	if (extent.height > 1) return vk::ImageViewType::e2D;
+	if (extent.depth > 0) return vk::ImageViewType::e3D;
+	if (extent.height > 0) return vk::ImageViewType::e2D;
 	return vk::ImageViewType::e1D;
 }
 

@@ -102,7 +102,7 @@ int main(int /*argc*/, char** /*argv*/)
     instanceBuffer = {};
 
     // Image setup
-    evk::Image image{ device, {target.width, target.height, 1}, vk::Format::eR8G8B8A8Snorm, vk::ImageTiling::eOptimal,
+    evk::Image image{ device, { target.width, target.height }, vk::Format::eR8G8B8A8Snorm, vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
     image.transitionLayout(vk::ImageLayout::eGeneral);
 

@@ -162,7 +162,7 @@ Image::Image(
     const vk::ImageTiling tiling,
     const vk::ImageUsageFlags usageFlags,
     const vk::MemoryPropertyFlags memoryPropertyFlags
-) : Resource{ device }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, extent{ extent }, format{ format }, 
+) : Resource{ device }, image{ nullptr }, imageView{ nullptr }, memory{ nullptr }, format{ format }, 
     aspectMask{ utils::formatToAspectMask(format) }, _tiling{ tiling }, _usageFlags{ usageFlags }, _memoryPropertyFlags{ memoryPropertyFlags }
 {
     resize(extent);
@@ -183,8 +183,12 @@ Image::Image(
 
 void Image::resize(vk::Extent3D ex)
 {
+    const vk::ImageType imageType = utils::extentToImageType(ex);
+    const vk::ImageViewType imageViewType = utils::extentToImageViewType(ex);
+
     extent = ex;
-    const vk::ImageType imageType = utils::extentToImageType(extent);
+    if (extent.height == 0) extent.height = 1;
+    if (extent.depth == 0) extent.depth = 1;
     const vk::ImageCreateInfo imageCreateInfo{ {}, imageType, format, extent,
         1, 1, vk::SampleCountFlagBits::e1, _tiling,
         _usageFlags
@@ -198,7 +202,6 @@ void Image::resize(vk::Extent3D ex)
     memory = vk::raii::DeviceMemory{ *dev, memoryAllocateInfo };
     image.bindMemory(*memory, 0);
 
-    const vk::ImageViewType imageViewType = utils::extentToImageViewType(extent);
     imageView = vk::raii::ImageView{ *dev, vk::ImageViewCreateInfo{ {}, *image, imageViewType, format,
         {}, { aspectMask, 0, 1, 0, 1 } } };
     barrier.oldLayout = vk::ImageLayout::eUndefined;
