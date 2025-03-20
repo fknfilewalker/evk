@@ -8,7 +8,6 @@
 #include <GLFW/glfw3native.h>
 #include <fstream>
 #include <filesystem>
-#include "shaders.h"
 
 import evk;
 
