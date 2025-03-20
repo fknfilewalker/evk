@@ -6,6 +6,8 @@
 #include <string_view>
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
+#include <fstream>
+#include <filesystem>
 #include "shaders.h"
 
 import evk;
@@ -39,20 +41,23 @@ int main(int /*argc*/, char** /*argv*/)
     // Device setup
     const vk::raii::PhysicalDevices physicalDevices{ instance };
     const vk::raii::PhysicalDevice& physicalDevice{ physicalDevices[0] };
+	std::printf("Device: %s\n", physicalDevice.getProperties().deviceName.data());
     // * find queue
     const auto queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
     const auto queueFamilyIndex = evk::utils::findQueueFamilyIndex(queueFamilyProperties, vk::QueueFlagBits::eCompute);
     if (!queueFamilyIndex.has_value()) exitWithError("No queue family index found");
     //if (!physicalDevice.getSurfaceSupportKHR(queueFamilyIndex.value(), *surface)) exitWithError("Queue family does not support presentation");
     // * check extensions
-    std::vector dExtensions{ vk::EXTMutableDescriptorTypeExtensionName };
+    std::vector dExtensions{ vk::EXTMutableDescriptorTypeExtensionName, vk::EXTShaderObjectExtensionName };
     if constexpr (evk::isApple) dExtensions.emplace_back("VK_KHR_portability_subset");
 
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
     // * activate features
     //vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR> featuresChain;
-    vk::PhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorTypeFeatures{ true };
-    vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &mutableDescriptorTypeFeatures };
+    vk::PhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ true };
+    vk::PhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorTypeFeatures{ true, &bufferDeviceAddressFeatures };
+    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &mutableDescriptorTypeFeatures };
+    vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &shaderObjectFeatures };
     physicalDeviceFeatures2.features.shaderInt64 = true;
     // * create device
     auto device = evk::make_shared<evk::Device>(instance, physicalDevice, dExtensions, evk::Device::Queues{ {queueFamilyIndex.value(), 1} }, &physicalDeviceFeatures2);
@@ -67,8 +72,25 @@ int main(int /*argc*/, char** /*argv*/)
 
     auto support = device->getDescriptorSetLayoutSupport(descriptorSetLayoutCreateInfo);
 
-    /*evk::DescriptorSetLayout descriptorSetLayout{ device, {
-        { { 0, vk::DescriptorType::eMutableEXT, 1, vk::ShaderStageFlagBits::eCompute }, vk::DescriptorBindingFlagBits::eVariableDescriptorCount }
-    } };*/
+    // load spv
+	std::filesystem::path p = std::filesystem::current_path();
+	std::printf("Current path is %s\n", p.string().c_str());
+	std::vector<uint32_t> spv;
+	std::fstream file("examples/experiments/shader.spv", std::ios::in | std::ios::binary);
+	if (!file.is_open()) exitWithError("Could not open file");
+	file.seekg(0, std::ios::end);
+    auto bytes = file.tellg();
+	spv.resize(bytes /4u);
+	file.seekg(0, std::ios::beg);
+	file.read(reinterpret_cast<char*>(spv.data()), bytes);
+	file.close();
+
+	// freeze happens here
+    constexpr vk::PushConstantRange pcRange{ vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, 40 };
+	auto shader = evk::ShaderObject{ device, {
+        { vk::ShaderStageFlagBits::eVertex, spv, "vertexMain"},
+        {vk::ShaderStageFlagBits::eFragment, spv, "fragmentMain"}
+    }, {pcRange} };
+
     return 0;
 }
