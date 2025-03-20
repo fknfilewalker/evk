@@ -77,7 +77,8 @@ int main(int /*argc*/, char** /*argv*/)
     vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &vulkan12Features };
     vk::PhysicalDeviceHostImageCopyFeaturesEXT hostImageCopyFeatures{ true, &shaderObjectFeatures };
     vk::PhysicalDeviceSynchronization2Features synchronization2Features{ true, &hostImageCopyFeatures };
-    vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{ true, &synchronization2Features };
+    vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT swapchainMaintenance{ true, &synchronization2Features };
+    vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{ true, &swapchainMaintenance };
     vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &dynamicRenderingFeatures };
     physicalDeviceFeatures2.features.shaderInt64 = true;
     // * create device
