@@ -340,11 +340,11 @@ ShaderObject::ShaderObject(
     _spvs.reserve(shaderStages.size());
     for (size_t i = 0; i < shaderStages.size(); ++i) {
         stages[i] = std::get<0>(shaderStages[i]);
-        _spvs.emplace_back(std::get<1>(shaderStages[i]));
+        _spvs.emplace_back(std::get<1>(shaderStages[i]).begin(), std::get<1>(shaderStages[i]).end());
         shaderCreateInfos[i].setStage(std::get<0>(shaderStages[i]));
         shaderCreateInfos[i].setPName(std::get<2>(shaderStages[i]).data());
         if (i < (shaderStages.size() - 1)) shaderCreateInfos[i].setNextStage(std::get<0>(shaderStages[i + 1u]));
-        shaderCreateInfos[i].setCode<uint32_t>(std::get<1>(shaderStages[i]).get());
+        shaderCreateInfos[i].setCode<uint32_t>(std::get<1>(shaderStages[i]));
     }
     _shaders = dev->createShadersEXT(shaderCreateInfos);
     for (size_t i = 0; i < shaderStages.size(); ++i) shaders[i] = *_shaders[i]; // needed in order to pass the vector directly to bindShadersEXT()

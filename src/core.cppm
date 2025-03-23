@@ -4,6 +4,7 @@ module;
 #include <unordered_map>
 #include <vector>
 #include <string_view>
+#include <span>
 #include <deque>
 #include <variant>
 #include <map>
@@ -363,7 +364,7 @@ export namespace evk
     using ShaderModules = std::vector<ShaderModule>;
 
     // stage, spv, entryPoint
-    using ShaderStage = std::tuple<const vk::ShaderStageFlagBits, const std::reference_wrapper<const std::vector<uint32_t>>, std::string_view>;
+    using ShaderStage = std::tuple<const vk::ShaderStageFlagBits, const std::span<uint32_t const>, std::string_view>;
 
     struct ShaderObject : Resource, Shareable<ShaderObject>
     {
