@@ -135,6 +135,6 @@ if(EVK_BUILD_EXAMPLES)
         add_target(imgui_rasterizer_triangle DEPS ${PROJECT_NAME} glfw SOURCES "examples/imgui_rasterizer_triangle/main.cpp" "examples/imgui_rasterizer_triangle/shaders.h" "examples/imgui_rasterizer_triangle/triangle.vert" "examples/imgui_rasterizer_triangle/triangle.frag" ${EVK_IMGUI_BACKEND_SOURCES})
     endif()
     
-    add_target(experiments DEPS ${PROJECT_NAME} glfw SOURCES "examples/experiments/main.cpp" "examples/experiments/shaders.h" "examples/experiments/triangle.comp")
+    add_target(experiments DEPS ${PROJECT_NAME} glfw SOURCES "examples/experiments/main.cpp")
     add_target(bug DEPS ${PROJECT_NAME} SOURCES "examples/bug/main.cpp")
 endif()
