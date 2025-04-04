@@ -104,6 +104,7 @@ export namespace evk
 
     struct CommandPool : Resource, Shareable<CommandPool>
     {
+        EVK_API CommandPool() : Resource{nullptr}, queueFamily(-1), commandPool{nullptr} {}
         EVK_API CommandPool(
             const evk::SharedPtr<Device>& device,
             Device::QueueFamily queueFamily,
