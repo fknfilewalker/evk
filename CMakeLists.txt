@@ -29,7 +29,7 @@ include(FetchContent)
 # VULKAN-HEADERS                 #
 #================================#
 # FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/heads/main.zip QUIET)
-FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.4.305.zip QUIET)
+FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.4.312.zip QUIET)
 message(STATUS "Vulkan-Headers dir: ${vulkan-headers_SOURCE_DIR}")
 
 #================================#
