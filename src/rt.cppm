@@ -13,7 +13,7 @@ export namespace evk::rt {
 	struct SBT : Resource {
 		struct GeneralGroup // raygen | miss | callable
 		{
-			GeneralGroup(const uint32_t raygen_miss_callable) : raygen_miss_callable{ raygen_miss_callable } {}
+			EVK_API GeneralGroup(const uint32_t raygen_miss_callable) : raygen_miss_callable{ raygen_miss_callable } {}
 			uint32_t raygen_miss_callable;
 		};
 		struct HitGroup
@@ -23,7 +23,7 @@ export namespace evk::rt {
                 Triangles = static_cast<uint32_t>(vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup),
                 Procedural = static_cast<uint32_t>(vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup)
             };
-			HitGroup(const Type type, const std::optional<uint32_t> closestHit = {}, const std::optional<uint32_t> anyHit = {}, const std::optional<uint32_t> intersection = {}) : type{ type },
+			EVK_API HitGroup(const Type type, const std::optional<uint32_t> closestHit = {}, const std::optional<uint32_t> anyHit = {}, const std::optional<uint32_t> intersection = {}) : type{ type },
 				closestHit{ closestHit.value_or(vk::ShaderUnusedKHR) }, anyHit{ anyHit.value_or(vk::ShaderUnusedKHR) }, intersection{ intersection.value_or(vk::ShaderUnusedKHR) } {}
             Type type;
 		    uint32_t closestHit, anyHit, intersection;
@@ -255,7 +255,7 @@ export namespace evk::rt {
 			buildSizesInfo = device->getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, _asBuildGeoInfo, _primitives);
 		}
 
-		void cmdBuild(const vk::raii::CommandBuffer& cb, const vk::AccelerationStructureKHR src = nullptr)
+		EVK_API void cmdBuild(const vk::raii::CommandBuffer& cb, const vk::AccelerationStructureKHR src = nullptr)
 	    {
 			if (!scratchBuffer)
 			{
@@ -330,7 +330,7 @@ export namespace evk::rt {
 	            vk::AccelerationStructureBuildTypeKHR::eDevice, _asBuildGeoInfo, _instanceCount);
 	    }
 
-		void cmdBuild(const vk::raii::CommandBuffer& cb, const vk::AccelerationStructureKHR src = nullptr)
+		EVK_API void cmdBuild(const vk::raii::CommandBuffer& cb, const vk::AccelerationStructureKHR src = nullptr)
 		{
 			if (!scratchBuffer)
 			{

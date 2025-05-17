@@ -144,17 +144,17 @@ export namespace evk
 
     struct ImageMemoryBarrier2 : vk::ImageMemoryBarrier2 {
 
-        constexpr ImageMemoryBarrier2& reset_src()
+        EVK_API constexpr ImageMemoryBarrier2& reset_src()
         {
             this->setSrcStageMask(vk::PipelineStageFlagBits2::eAllCommands).setSrcAccessMask({});
             return *this;
         }
-        constexpr ImageMemoryBarrier2& reset_dst()
+        EVK_API constexpr ImageMemoryBarrier2& reset_dst()
         {
             this->setDstStageMask(vk::PipelineStageFlagBits2::eAllCommands).setDstAccessMask({});
             return *this;
         }
-        constexpr ImageMemoryBarrier2& swap_src_dst()
+        EVK_API constexpr ImageMemoryBarrier2& swap_src_dst()
         {
             srcStageMask = dstStageMask;
             srcAccessMask = dstAccessMask;
@@ -164,12 +164,12 @@ export namespace evk
             newLayout = {};
             return *this;
         }
-        ImageMemoryBarrier2& pipelineBarrier(const vk::raii::CommandBuffer& cb) {
+        EVK_API ImageMemoryBarrier2& pipelineBarrier(const vk::raii::CommandBuffer& cb) {
             cb.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(*this));
             return *this;
         }
-        [[nodiscard]] bool is_layout(vk::ImageLayout l) const { return oldLayout == l; }
-        [[nodiscard]] bool is_not_layout(vk::ImageLayout l) const { return oldLayout != l; }
+        EVK_API [[nodiscard]] bool is_layout(vk::ImageLayout l) const { return oldLayout == l; }
+        EVK_API [[nodiscard]] bool is_not_layout(vk::ImageLayout l) const { return oldLayout != l; }
     };
 
     struct Image : Resource, Shareable<Image>
