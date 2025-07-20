@@ -29,7 +29,7 @@ include(FetchContent)
 # VULKAN-HEADERS                 #
 #================================#
 # FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/heads/main.zip QUIET)
-FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.4.312.zip QUIET)
+FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.4.323.zip QUIET)
 message(STATUS "Vulkan-Headers dir: ${vulkan-headers_SOURCE_DIR}")
 
 #================================#
@@ -66,7 +66,7 @@ endif()
 # optional imgui backend
 # window backends need to be included in the main project
 if(EVK_INCLUDE_IMGUI_BACKEND) # imgui
-    set(EVK_INCLUDE_IMGUI_VERSION "v1.90.6" CACHE STRING "ImGui version")
+    set(EVK_INCLUDE_IMGUI_VERSION "v1.92.1" CACHE STRING "ImGui version")
     FetchContent_Populate(imgui URL https://github.com/ocornut/imgui/archive/refs/tags/${EVK_INCLUDE_IMGUI_VERSION}.zip QUIET)
     message(STATUS "ImGui-Source dir: ${imgui_SOURCE_DIR}")
     if(NOT EVK_IS_TOPLEVEL_PROJECT)

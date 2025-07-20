@@ -12,7 +12,7 @@ using namespace evk;
 
 namespace
 {
-	const std::vector<uint32_t> imgui_backend_shaders_spv = {
+	constexpr uint32_t imgui_backend_shaders_spv[] = {
 		0x07230203, 0x00010500, 0x00000028, 0x0000006b, 0x00000000, 0x00020011, 0x000014e3, 0x00020011, 0x00000027,
 	    0x00020011, 0x00000001, 0x0009000a, 0x5f565053, 0x5f52484b, 0x73796870, 0x6c616369, 0x6f74735f, 0x65676172,
 	    0x6675625f, 0x00726566, 0x0003000e, 0x000014e4, 0x00000001, 0x000b000f, 0x00000000, 0x00000002, 0x74726576,
@@ -128,7 +128,7 @@ void ImGuiBackend::setFont(const std::string_view filepath, const float scaleFac
 	fontImage.copyMemoryToImage(pixels);
 	fontImage.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-	io.Fonts->SetTexID((ImTextureID)((vk::DescriptorSet::NativeType)descriptorSet.set)); // Store our identifier
+	io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<vk::DescriptorSet::NativeType>(descriptorSet.set))); // Store our identifier
 	descriptorSet.setDescriptor(0, vk::DescriptorImageInfo{ *sampler, fontImage.imageView, vk::ImageLayout::eShaderReadOnlyOptimal });
 	descriptorSet.update();
 }
@@ -255,7 +255,7 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 				});
 
 				// Bind DescriptorSet with font or user texture if different
-				const vk::DescriptorSet::NativeType descSet = (vk::DescriptorSet::NativeType)(pcmd->TextureId);
+				const vk::DescriptorSet::NativeType descSet = reinterpret_cast<vk::DescriptorSet::NativeType>(pcmd->GetTexID());
 				if (!prevDesc || prevDesc != descSet) {
 					cb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, shader.layout, 0, { descSet }, {});
 					prevDesc = descSet;

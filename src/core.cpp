@@ -5,7 +5,6 @@ module;
 #include <vector>
 #include <variant>
 #include <memory>
-#include <cstring>
 #include <deque>
 module evk;
 import :core;
