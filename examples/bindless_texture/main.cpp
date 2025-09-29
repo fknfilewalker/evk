@@ -4,10 +4,11 @@
 #include <array>
 #include <memory>
 #include <functional>
+#include <iostream>
 #include <string_view>
 #include <optional>
 #include <SDL3/SDL.h>
-#include "shaders.h"
+#include "shader.h"
 
 import evk;
 
@@ -20,7 +21,7 @@ constexpr struct { uint32_t width, height; } target{ 800u, 600u };
 int main(int /*argc*/, char** /*argv*/)
 {
     if (!SDL_Init(0)) exitWithError("Failed to init SDL");
-    SDL_Window* window = SDL_CreateWindow("Vulkan Rasterizer", target.width, target.height, SDL_WINDOW_RESIZABLE);
+    SDL_Window* window = SDL_CreateWindow("Bindless Texture", target.width, target.height, SDL_WINDOW_RESIZABLE);
 
     // Instance Setup
     std::vector iExtensions{ vk::KHRSurfaceExtensionName, vk::EXTSurfaceMaintenance1ExtensionName, vk::KHRGetSurfaceCapabilities2ExtensionName };
@@ -59,7 +60,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName, vk::KHRDynamicRenderingExtensionName,
         vk::KHRRayQueryExtensionName, vk::KHRAccelerationStructureExtensionName, vk::KHRDeferredHostOperationsExtensionName,
         vk::KHRFormatFeatureFlags2ExtensionName, vk::KHRSynchronization2ExtensionName, vk::KHRMaintenance4ExtensionName, vk::EXTHostImageCopyExtensionName,
-        vk::EXTSwapchainMaintenance1ExtensionName };
+        vk::EXTSwapchainMaintenance1ExtensionName, vk::NVXImageViewHandleExtensionName };
     if constexpr (evk::isApple) dExtensions.emplace_back("VK_KHR_portability_subset");
 
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
@@ -143,6 +144,7 @@ int main(int /*argc*/, char** /*argv*/)
     evk::DescriptorSetLayout descriptorSetLayout{ device, {
         { { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute }, vk::DescriptorBindingFlagBits::eVariableDescriptorCount }
     } };
+    
     std::vector<evk::DescriptorSet> descriptorSets;
     descriptorSets.reserve(swapchain.imageCount());
     for (uint32_t i = 0; i < swapchain.imageCount(); i++) {
@@ -152,6 +154,9 @@ int main(int /*argc*/, char** /*argv*/)
         descriptorSets.emplace_back(device, descriptorSetLayout);
         descriptorSets.back().setDescriptor(0, vk::DescriptorImageInfo{ {}, images.back().imageView, vk::ImageLayout::eGeneral });
         descriptorSets.back().update();
+
+        const auto info = vk::ImageViewHandleInfoNVX().setDescriptorType(vk::DescriptorType::eStorageImage).setImageView(images.back().imageView);
+        const uint64_t handle = device->getImageViewHandle64NVX(info);
     }
 
     // Shader object setup
@@ -167,16 +172,16 @@ int main(int /*argc*/, char** /*argv*/)
 
     constexpr vk::PushConstantRange pcRange{ vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint64_t) };
     evk::ShaderObject shader{ device, {
-        { vk::ShaderStageFlagBits::eCompute, computeShaderSPV, "main" }
+        { vk::ShaderStageFlagBits::eCompute, shader_spv, "main" }
     }, { pcRange }, shaderSpecialization, { descriptorSetLayout } };
 
     bool running = true, minimized = false;
     while (running) {
-        SDL_Event windowEvent;
-        while (SDL_PollEvent(&windowEvent)) {
-            if (windowEvent.type == SDL_EVENT_QUIT) { running = false; break; }
-            if (windowEvent.type == SDL_EVENT_WINDOW_MINIMIZED) { minimized = true; break; }
-            if (windowEvent.type == SDL_EVENT_WINDOW_RESTORED) { minimized = false; break; }
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_QUIT) { running = false; break; }
+            if (event.type == SDL_EVENT_WINDOW_MINIMIZED) { minimized = true; break; }
+            if (event.type == SDL_EVENT_WINDOW_RESTORED) { minimized = false; break; }
         }
         if (minimized) continue;
 

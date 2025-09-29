@@ -7,7 +7,7 @@
 #include <string_view>
 #include <optional>
 #include <SDL3/SDL.h>
-#include "shaders.h"
+#include "shader.h"
 
 import evk;
 
@@ -167,7 +167,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     constexpr vk::PushConstantRange pcRange{ vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint64_t) };
     evk::ShaderObject shader{ device, {
-        { vk::ShaderStageFlagBits::eCompute, computeShaderSPV, "main" }
+        { vk::ShaderStageFlagBits::eCompute, shader_spv, "main" }
     }, { pcRange }, shaderSpecialization, { descriptorSetLayout } };
 
     bool running = true, minimized = false;
