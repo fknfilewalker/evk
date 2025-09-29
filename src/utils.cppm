@@ -4,6 +4,9 @@ module;
 #include <vector>
 #include <concepts>
 #include <functional>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 export module evk:utils;
 import vulkan_hpp;
 
@@ -29,6 +32,14 @@ export namespace evk {
     constexpr bool isLinux = os == OS::Linux;
     constexpr bool isMacOS = os == OS::MacOS;
     constexpr bool isApple = isMacOS;
+
+#ifdef _WIN32
+    namespace win {
+        using HWND = HWND;
+    }
+#elif __linux__
+#elif __APPLE__
+#endif
 
     namespace utils {
         template <typename T>

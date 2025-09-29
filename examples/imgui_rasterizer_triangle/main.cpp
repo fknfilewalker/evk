@@ -4,11 +4,10 @@
 #include <memory>
 #include <functional>
 #include <string_view>
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
+#include <SDL3/SDL.h>
 #include "shaders.h"
 #include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_sdl3.h>
 
 import evk;
 import evk.imgui;
@@ -18,14 +17,11 @@ import evk.imgui;
     exit(EXIT_FAILURE);
 }
 
-constexpr uint32_t window_width = 800;
-constexpr uint32_t window_height = 600;
+constexpr struct { uint32_t width, height; } target{ 800u, 600u };
 int main(int /*argc*/, char** /*argv*/)
 {
-    if (!glfwInit()) exitWithError("Failed to init GLFW");
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // No need to create a graphics context for Vulkan
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "Vulkan Rasterizer", nullptr, nullptr);
+    if (!SDL_Init(0)) exitWithError("Failed to init SDL");
+    SDL_Window* window = SDL_CreateWindow("Vulkan Rasterizer", target.width, target.height, SDL_WINDOW_RESIZABLE);
 
     // Instance Setup
     std::vector iExtensions{ vk::KHRSurfaceExtensionName, vk::EXTSurfaceMaintenance1ExtensionName, vk::KHRGetSurfaceCapabilities2ExtensionName };
@@ -46,10 +42,14 @@ int main(int /*argc*/, char** /*argv*/)
     auto instance = evk::Instance::shared(ctx, instanceFlags, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion12 }, iLayers, iExtensions);
 
     // Surface Setup
+    vk::raii::SurfaceKHR surface{ nullptr };
 #ifdef VK_USE_PLATFORM_WIN32_KHR
-    const vk::raii::SurfaceKHR surface{ instance, vk::Win32SurfaceCreateInfoKHR{ {}, GetModuleHandle(nullptr), glfwGetWin32Window(window) } };
+    surface = vk::raii::SurfaceKHR{ instance, vk::Win32SurfaceCreateInfoKHR{ {}, nullptr, static_cast<evk::win::HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER,
+            nullptr)) } };
+#elif VK_USE_PLATFORM_XLIB_KHR
+#elif VK_USE_PLATFORM_WAYLAND_KHR
 #elif VK_USE_PLATFORM_METAL_EXT
-    const vk::raii::SurfaceKHR surface{ instance, vk::MetalSurfaceCreateInfoEXT{ {}, glfwGetMetalLayer(window) } };
+    surface = vk::raii::SurfaceKHR{ instance, vk::MetalSurfaceCreateInfoEXT{ {}, SDL_Metal_GetLayer(SDL_Metal_CreateView(window)) } };
 #endif
 
     // Device setup
@@ -125,14 +125,20 @@ int main(int /*argc*/, char** /*argv*/)
 
     evk::ImGuiBackend imguiBackend{ device, swapchain.imageCount() };
     imguiBackend.setFont();
-    ImGui_ImplGlfw_InitForVulkan(window, true);
+    ImGui_ImplSDL3_InitForVulkan(window);
 
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) continue;
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE)) glfwSetWindowShouldClose(window, GLFW_TRUE);
+    bool running = true, minimized = false;
+    while (running) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            ImGui_ImplSDL3_ProcessEvent(&event);
+            if (event.type == SDL_EVENT_QUIT) { running = false; break; }
+            if (event.type == SDL_EVENT_WINDOW_MINIMIZED) { minimized = true; break; }
+            if (event.type == SDL_EVENT_WINDOW_RESTORED) { minimized = false; break; }
+        }
+        if (minimized) continue;
 
-        ImGui_ImplGlfw_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
         ImGui::Begin("Another Window");
         ImGui::Text("Hello from another window!");
@@ -190,7 +196,7 @@ int main(int /*argc*/, char** /*argv*/)
         swapchain.submitImage(device->getQueue(queueFamilyIndex.value(), 0), vk::PipelineStageFlagBits2::eColorAttachmentOutput);
     }
     device->waitIdle();
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return 0;
 }

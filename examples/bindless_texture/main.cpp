@@ -6,24 +6,21 @@
 #include <functional>
 #include <string_view>
 #include <optional>
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
+#include <SDL3/SDL.h>
 #include "shaders.h"
 
 import evk;
 
 [[noreturn]] void exitWithError(const std::string_view error = "") {
-    if(error.empty()) std::printf("%s\n", error.data());
+    if (error.empty()) std::printf("%s\n", error.data());
     exit(EXIT_FAILURE);
 }
 
 constexpr struct { uint32_t width, height; } target{ 800u, 600u };
 int main(int /*argc*/, char** /*argv*/)
 {
-    if (!glfwInit()) exitWithError("Failed to init GLFW");
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // No need to create a graphics context for Vulkan
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    GLFWwindow* window = glfwCreateWindow(target.width, target.height, "Vulkan Ray Query", nullptr, nullptr);
+    if (!SDL_Init(0)) exitWithError("Failed to init SDL");
+    SDL_Window* window = SDL_CreateWindow("Vulkan Rasterizer", target.width, target.height, SDL_WINDOW_RESIZABLE);
 
     // Instance Setup
     std::vector iExtensions{ vk::KHRSurfaceExtensionName, vk::EXTSurfaceMaintenance1ExtensionName, vk::KHRGetSurfaceCapabilities2ExtensionName };
@@ -40,10 +37,14 @@ int main(int /*argc*/, char** /*argv*/)
     auto instance = evk::Instance::shared(ctx, vk::InstanceCreateFlags{}, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion13 }, iLayers, iExtensions);
 
     // Surface Setup
+    vk::raii::SurfaceKHR surface{ nullptr };
 #ifdef VK_USE_PLATFORM_WIN32_KHR
-    const vk::raii::SurfaceKHR surface{ instance, vk::Win32SurfaceCreateInfoKHR{ {}, GetModuleHandle(nullptr), glfwGetWin32Window(window) } };
+    surface = vk::raii::SurfaceKHR{ instance, vk::Win32SurfaceCreateInfoKHR{ {}, nullptr, static_cast<evk::win::HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER,
+            nullptr)) } };
+#elif VK_USE_PLATFORM_XLIB_KHR
+#elif VK_USE_PLATFORM_WAYLAND_KHR
 #elif VK_USE_PLATFORM_METAL_EXT
-    const vk::raii::SurfaceKHR surface{ instance, vk::MetalSurfaceCreateInfoEXT{ {}, glfwGetMetalLayer(window) } };
+    surface = vk::raii::SurfaceKHR{ instance, vk::MetalSurfaceCreateInfoEXT{ {}, SDL_Metal_GetLayer(SDL_Metal_CreateView(window)) } };
 #endif
 
     // Device setup
@@ -126,7 +127,7 @@ int main(int /*argc*/, char** /*argv*/)
     for (size_t i = 0; i < sFormats.size() && !sFormat.has_value(); ++i) {
         if (device->imageFormatSupported(sFormats[i].format, vk::ImageType::e2D, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eHostTransferEXT))
             sFormat = sFormats[i];
-	}
+    }
     if (!sFormat.has_value()) exitWithError("No suitable swapchain format found");
 
     const vk::SwapchainCreateInfoKHR swapchainCreateInfo{ {}, *surface, evk::utils::clampSwapchainImageCount(2u, sCapabilities),
@@ -141,14 +142,14 @@ int main(int /*argc*/, char** /*argv*/)
 
     evk::DescriptorSetLayout descriptorSetLayout{ device, {
         { { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute }, vk::DescriptorBindingFlagBits::eVariableDescriptorCount }
-    }};
+    } };
     std::vector<evk::DescriptorSet> descriptorSets;
     descriptorSets.reserve(swapchain.imageCount());
     for (uint32_t i = 0; i < swapchain.imageCount(); i++) {
         images.emplace_back(device, vk::Extent3D{ sCapabilities.currentExtent.width, sCapabilities.currentExtent.height }, sFormat.value().format, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eDeviceLocal);
         images.back().transitionLayout(vk::ImageLayout::eGeneral);
-    	descriptorSets.emplace_back(device, descriptorSetLayout);
+        descriptorSets.emplace_back(device, descriptorSetLayout);
         descriptorSets.back().setDescriptor(0, vk::DescriptorImageInfo{ {}, images.back().imageView, vk::ImageLayout::eGeneral });
         descriptorSets.back().update();
     }
@@ -169,10 +170,16 @@ int main(int /*argc*/, char** /*argv*/)
         { vk::ShaderStageFlagBits::eCompute, computeShaderSPV, "main" }
     }, { pcRange }, shaderSpecialization, { descriptorSetLayout } };
 
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) continue;
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE)) glfwSetWindowShouldClose(window, GLFW_TRUE);
+    bool running = true, minimized = false;
+    while (running) {
+        SDL_Event windowEvent;
+        while (SDL_PollEvent(&windowEvent)) {
+            if (windowEvent.type == SDL_EVENT_QUIT) { running = false; break; }
+            if (windowEvent.type == SDL_EVENT_WINDOW_MINIMIZED) { minimized = true; break; }
+            if (windowEvent.type == SDL_EVENT_WINDOW_RESTORED) { minimized = false; break; }
+        }
+        if (minimized) continue;
+
         swapchain.acquireNextImage();
         const auto& cFrame = swapchain.getCurrentFrame();
         const auto& cb = cFrame.commandBuffer;
@@ -219,7 +226,7 @@ int main(int /*argc*/, char** /*argv*/)
         swapchain.submitImage(device->getQueue(queueFamilyIndex.value(), 0), vk::PipelineStageFlagBits2::eComputeShader);
     }
     device->waitIdle();
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return 0;
 }
