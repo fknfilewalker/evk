@@ -48,6 +48,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
     VULKAN_HPP_NO_SMART_HANDLE
     VULKAN_HPP_NO_SPACESHIP_OPERATOR
     VULKAN_HPP_NO_TO_STRING
+    VULKAN_HPP_NO_STD_MODULE
     VK_NO_PROTOTYPES
 )
 if(WIN32)
@@ -66,7 +67,7 @@ endif()
 # optional imgui backend
 # window backends need to be included in the main project
 if(EVK_INCLUDE_IMGUI_BACKEND) # imgui
-    set(EVK_INCLUDE_IMGUI_VERSION "v1.92.1" CACHE STRING "ImGui version")
+    set(EVK_INCLUDE_IMGUI_VERSION "v1.92.3" CACHE STRING "ImGui version")
     FetchContent_Populate(imgui URL https://github.com/ocornut/imgui/archive/refs/tags/${EVK_INCLUDE_IMGUI_VERSION}.zip QUIET)
     message(STATUS "ImGui-Source dir: ${imgui_SOURCE_DIR}")
     if(NOT EVK_IS_TOPLEVEL_PROJECT)
@@ -134,6 +135,7 @@ if(EVK_BUILD_EXAMPLES)
         source_group(TREE "${imgui_SOURCE_DIR}" PREFIX "ImGui (External)" FILES ${EVK_IMGUI_BACKEND_SOURCES})
         add_target(imgui_rasterizer_triangle DEPS ${PROJECT_NAME} glfw SOURCES "examples/imgui_rasterizer_triangle/main.cpp" "examples/imgui_rasterizer_triangle/shaders.h" "examples/imgui_rasterizer_triangle/triangle.vert" "examples/imgui_rasterizer_triangle/triangle.frag" ${EVK_IMGUI_BACKEND_SOURCES})
     endif()
+    add_target(bindless_texture DEPS ${PROJECT_NAME} glfw SOURCES "examples/bindless_texture/main.cpp" "examples/bindless_texture/shaders.h" "examples/bindless_texture/shader.slang")
     
     add_target(experiments DEPS ${PROJECT_NAME} glfw SOURCES "examples/experiments/main.cpp")
     add_target(bug DEPS ${PROJECT_NAME} SOURCES "examples/bug/main.cpp")

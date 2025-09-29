@@ -1,0 +1,47 @@
+#version 460
+#extension GL_EXT_shader_explicit_arithmetic_types : require
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_ray_query : require
+
+layout(binding = 0, set = 0, rgba8) uniform image2D images[];
+layout(push_constant, scalar) uniform pushConstant
+{
+    uint64_t tlas;
+};
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+void main(){
+    const uvec2 id = gl_GlobalInvocationID.xy; // gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID
+    const ivec2 imageDimensions = imageSize(images[0]).xy;
+    if(any(greaterThanEqual(id, imageDimensions))) return;
+    const float WIDTH = float(imageDimensions.x);
+    const float HEIGHT = float(imageDimensions.y);
+
+    const float RATIO = WIDTH / HEIGHT;
+    const vec4 S = vec4(-1.0, 1.0, 1.0, -1.0); // Screen: left, top, right, bottom
+    const vec2 PIXELSIZE = vec2((S[2] - S[0]) / WIDTH, (S[3] - S[1]) / HEIGHT);
+    const vec2 PIXELSIZE_HALF = PIXELSIZE / 2.0;
+
+    const vec3 EYE = vec3(0.0, 0.0, -1.0);
+    const float SENSOR_OFFSET_Z = 0.0;
+    const vec3 PIXEL = vec3(S[0] + PIXELSIZE.x * float(id.x) + PIXELSIZE_HALF.x, S[1] + PIXELSIZE.y * float(id.y) + PIXELSIZE_HALF.y, SENSOR_OFFSET_Z);
+    const vec3 DIR = normalize(PIXEL - EYE);
+
+    rayQueryEXT rayQuery;
+    uint cullMask = 0xFF;
+    float tMin = 0.001;
+    float tMax = 1000.0;
+    rayQueryInitializeEXT(rayQuery, accelerationStructureEXT(tlas), gl_RayFlagsNoneEXT, cullMask, EYE, tMin, DIR, tMax);
+
+    while(rayQueryProceedEXT(rayQuery)) {
+        if (rayQueryGetIntersectionTypeEXT(rayQuery, false) == gl_RayQueryCandidateIntersectionTriangleEXT) {
+            rayQueryConfirmIntersectionEXT(rayQuery);
+        }
+    }
+
+    if (rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
+        imageStore(images[0], ivec2(id.xy), vec4(0.0,0.0,0.0,0.0));
+    } else {
+        imageStore(images[0], ivec2(id.xy), vec4(255.0,0.0,0.0,0.0));
+    }
+}
