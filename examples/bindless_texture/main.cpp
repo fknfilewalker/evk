@@ -138,7 +138,7 @@ int main(int /*argc*/, char** /*argv*/)
     imageMemoryBarrier.setSubresourceRange({ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
     vk::DependencyInfo dependencyInfo = vk::DependencyInfo{}.setImageMemoryBarriers(imageMemoryBarrier);
 
-    // Descriptor set setup
+    // Target image setup
     std::vector<evk::Image> images;
     std::vector<uint64_t> imageHandles;
     imageHandles.reserve(swapchain.imageCount());
