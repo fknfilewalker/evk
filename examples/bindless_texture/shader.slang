@@ -1,5 +1,5 @@
 /* Usage:
-slangc bindless.slang -target spirv -capability spvBindlessTextureNV -emit-spirv-directly -fvk-use-entrypoint-name -source-embed-style u32 -source-embed-name shader_spv -o shaders.h
+slangc shader.slang -target spirv -capability spvBindlessTextureNV -emit-spirv-directly -fvk-use-entrypoint-name -source-embed-style u32 -source-embed-name shader_spv -o shaders.h
 */
 [[vk::push_constant]] vector<uint64_t, 2> pc; /* 0: TLAS, 1: RWTexture2D<float4> */
 
