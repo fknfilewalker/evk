@@ -140,23 +140,14 @@ int main(int /*argc*/, char** /*argv*/)
 
     // Descriptor set setup
     std::vector<evk::Image> images;
-
-    evk::DescriptorSetLayout descriptorSetLayout{ device, {
-        { { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute }, vk::DescriptorBindingFlagBits::eVariableDescriptorCount }
-    } };
-    
-    std::vector<evk::DescriptorSet> descriptorSets;
-    descriptorSets.reserve(swapchain.imageCount());
+    std::vector<uint64_t> imageHandles;
+    imageHandles.reserve(swapchain.imageCount());
     for (uint32_t i = 0; i < swapchain.imageCount(); i++) {
         images.emplace_back(device, vk::Extent3D{ sCapabilities.currentExtent.width, sCapabilities.currentExtent.height }, sFormat.value().format, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eDeviceLocal);
         images.back().transitionLayout(vk::ImageLayout::eGeneral);
-        descriptorSets.emplace_back(device, descriptorSetLayout);
-        descriptorSets.back().setDescriptor(0, vk::DescriptorImageInfo{ {}, images.back().imageView, vk::ImageLayout::eGeneral });
-        descriptorSets.back().update();
-
         const auto info = vk::ImageViewHandleInfoNVX().setDescriptorType(vk::DescriptorType::eStorageImage).setImageView(images.back().imageView);
-        const uint64_t handle = device->getImageViewHandle64NVX(info);
+        imageHandles.push_back(device->getImageViewHandle64NVX(info));
     }
 
     // Shader object setup
@@ -170,10 +161,10 @@ int main(int /*argc*/, char** /*argv*/)
         { 1u, sizeof(uint32_t), sizeof(uint32_t) }
     }, &workGroupSize };
 
-    constexpr vk::PushConstantRange pcRange{ vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint64_t) };
+    constexpr vk::PushConstantRange pcRange{ vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint64_t) * 2 };
     evk::ShaderObject shader{ device, {
         { vk::ShaderStageFlagBits::eCompute, shader_spv, "main" }
-    }, { pcRange }, shaderSpecialization, { descriptorSetLayout } };
+    }, { pcRange }, shaderSpecialization, {} };
 
     bool running = true, minimized = false;
     while (running) {
@@ -189,9 +180,8 @@ int main(int /*argc*/, char** /*argv*/)
         const auto& cFrame = swapchain.getCurrentFrame();
         const auto& cb = cFrame.commandBuffer;
         {
-            cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shader.layout, 0, { descriptorSets[swapchain.currentImageIdx] }, {});
             cb.bindShadersEXT(shader.stages, shader.shaders);
-            cb.pushConstants<uint64_t>(*shader.layout, vk::ShaderStageFlagBits::eCompute, 0, tlas.deviceAddress);
+            cb.pushConstants<std::array<uint64_t, 2>>(*shader.layout, vk::ShaderStageFlagBits::eCompute, 0, std::array{ tlas.deviceAddress, imageHandles[swapchain.currentImageIdx] });
             cb.dispatch(workGroupCount[0], workGroupCount[1], 1);
         }
 

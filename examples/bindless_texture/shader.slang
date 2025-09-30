@@ -1,17 +1,19 @@
 /* Usage:
-slangc shader.slang -target spirv -emit-spirv-directly -fvk-use-entrypoint-name -source-embed-style u32 -source-embed-name shaders_spv -o shaders.h
+slangc bindless.slang -target spirv -capability spvBindlessTextureNV -emit-spirv-directly -fvk-use-entrypoint-name -source-embed-style u32 -source-embed-name shader_spv -o shaders.h
 */
-[[vk::binding(0, 0)]] RWTexture2D<float4> image;
-[[vk::push_constant]] uint64_t tlas;
+[[vk::push_constant]] vector<uint64_t, 2> pc; /* 0: TLAS, 1: RWTexture2D<float4> */
 
 [vk::constant_id(0)] const int WGS_X = 1;
 [vk::constant_id(1)] const int WGS_Y = 1;
 [shader("compute"), numthreads(WGS_X, WGS_Y, 1)]
+
+[require(spvRayTracingKHR, spvRayQueryKHR, spvBindlessTextureNV)]
 void main(
     uint3 id: SV_DispatchThreadID
 ) {
+    RWTexture2D<float4>.Handle target = RWTexture2D<float4>.Handle(pc.y);
     uint2 imageDimensions;
-    image.GetDimensions(imageDimensions.x, imageDimensions.y);
+    target.GetDimensions(imageDimensions.x, imageDimensions.y);
     if (any(id.xy >= imageDimensions)) return;
     const float WIDTH = float(imageDimensions.x);
     const float HEIGHT = float(imageDimensions.y);
@@ -28,7 +30,7 @@ void main(
 
     RayQuery<0> rayQuery;
     RayDesc ray = { EYE, 0.001, DIR, 1000.0 };
-    rayQuery.TraceRayInline(RaytracingAccelerationStructure(tlas), RAY_FLAG_NONE, 0xFF, ray);
+    rayQuery.TraceRayInline(RaytracingAccelerationStructure(pc.x), RAY_FLAG_NONE, 0xFF, ray);
 
     while (rayQuery.Proceed()) {
         if (rayQuery.CandidateType() == CANDIDATE_NON_OPAQUE_TRIANGLE) {
@@ -37,8 +39,8 @@ void main(
     }
 
     if (rayQuery.CommittedStatus() == COMMITTED_NOTHING) {
-        image.Store(id.xy, float4(0, 0, 0, 0));
+        target.Store(id.xy, float4(0, 0, 0, 0));
     } else {
-        image.Store(id.xy, float4(1, 0, 0, 0));
+        target.Store(id.xy, float4(1, 0, 0, 0));
     }
 }
