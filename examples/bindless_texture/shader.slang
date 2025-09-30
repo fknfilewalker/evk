@@ -11,7 +11,7 @@ slangc bindless.slang -target spirv -capability spvBindlessTextureNV -emit-spirv
 void main(
     uint3 id: SV_DispatchThreadID
 ) {
-    RWTexture2D<float4>.Handle target = RWTexture2D<float4>.Handle(pc.y);
+    let target = RWTexture2D<float4>.Handle(pc.y);
     uint2 imageDimensions;
     target.GetDimensions(imageDimensions.x, imageDimensions.y);
     if (any(id.xy >= imageDimensions)) return;
@@ -38,9 +38,5 @@ void main(
         }
     }
 
-    if (rayQuery.CommittedStatus() == COMMITTED_NOTHING) {
-        target.Store(id.xy, float4(0, 0, 0, 0));
-    } else {
-        target.Store(id.xy, float4(1, 0, 0, 0));
-    }
+    target.Store(id.xy, float4(rayQuery.CommittedStatus(), 0, 0, 0));
 }
