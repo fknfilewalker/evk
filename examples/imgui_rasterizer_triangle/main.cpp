@@ -141,7 +141,7 @@ int main(int /*argc*/, char** /*argv*/)
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
         ImGui::Begin("Another Window");
-        ImGui::Text("Hello from another window!");
+        ImGui::Text("%.2f FPS | %.2f ms", io.Framerate, 1000.0 / io.Framerate);
         ImGui::End();
         ImGui::Render();
 
