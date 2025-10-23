@@ -85,22 +85,25 @@ export namespace evk::rt {
 				}
 
 				if (sbt.missEntries) {
-					auto size = shaderGroupHandleSize * sbt.missEntries;
-					std::memcpy(ptr + sbt.missRegion.deviceAddress, shaderHandleStorage.data() + shaderHandleStorageOffset, size);
-					shaderHandleStorageOffset += size;
+					for (uint32_t i = 0; i < sbt.missEntries; ++i) {
+						std::memcpy(ptr + sbt.missRegion.deviceAddress + i * sbt.missRegion.stride, shaderHandleStorage.data() + shaderHandleStorageOffset, shaderGroupHandleSize);
+						shaderHandleStorageOffset += shaderGroupHandleSize;
+					}
 				}
 
 				if (sbt.hitEntries) {
-					auto size = shaderGroupHandleSize * sbt.hitEntries;
-					std::memcpy(ptr + sbt.hitRegion.deviceAddress, shaderHandleStorage.data() + shaderHandleStorageOffset, size);
-					shaderHandleStorageOffset += size;
+					for (uint32_t i = 0; i < sbt.hitEntries; ++i) {
+						std::memcpy(ptr + sbt.hitRegion.deviceAddress + i * sbt.hitRegion.stride, shaderHandleStorage.data() + shaderHandleStorageOffset, shaderGroupHandleSize);
+						shaderHandleStorageOffset += shaderGroupHandleSize;
+					}
 				}
 
 				if (sbt.callableEntries) {
-					auto size = shaderGroupHandleSize * sbt.callableEntries;
-					std::memcpy(ptr + sbt.callableRegion.deviceAddress, shaderHandleStorage.data() + shaderHandleStorageOffset, size);
-					shaderHandleStorageOffset += size;
-                }
+					for (uint32_t i = 0; i < sbt.callableEntries; ++i) {
+						std::memcpy(ptr + sbt.callableRegion.deviceAddress + i * sbt.callableRegion.stride, shaderHandleStorage.data() + shaderHandleStorageOffset, shaderGroupHandleSize);
+						shaderHandleStorageOffset += shaderGroupHandleSize;
+					}
+				}
 				_sbtBuffer.memory.unmapMemory();
 
 				_rgenRegions = sbt.rgenRegions;
