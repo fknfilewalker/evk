@@ -214,7 +214,7 @@ export namespace evk
             const vk::DescriptorBindingFlags bindingFlags = {},
 			const vk::DescriptorSetLayoutCreateFlags layoutCreateFlags = {},
 			const std::vector<vk::DescriptorType>& descriptorTypes = { vk::DescriptorType::eSampler, vk::DescriptorType::eCombinedImageSampler, vk::DescriptorType::eSampledImage, vk::DescriptorType::eStorageImage, vk::DescriptorType::eUniformTexelBuffer, vk::DescriptorType::eStorageTexelBuffer, vk::DescriptorType::eUniformBuffer, vk::DescriptorType::eStorageBuffer }
-        ) : Resource{ device }, layout{ nullptr }, descriptorCount{ descriptorCount }
+		) : Resource{ device }, layout{ nullptr }, descriptorCount{ descriptorCount }
         {
             vk::MutableDescriptorTypeListEXT mutableTypes{ descriptorTypes };
             vk::MutableDescriptorTypeCreateInfoEXT mutableCreateInfo{ mutableTypes };
@@ -222,16 +222,19 @@ export namespace evk
 
         	vk::DescriptorSetLayoutBinding layoutBinding{ 0, vk::DescriptorType::eMutableEXT, descriptorCount, stages };
             const vk::DescriptorSetLayoutCreateInfo layoutCreateInfo{ layoutCreateFlags, layoutBinding, &bindingFlagsCreateInfo };
+            auto support = dev->getDescriptorSetLayoutSupport(layoutCreateInfo);
             layout = vk::raii::DescriptorSetLayout{ *dev, layoutCreateInfo };
         }
 
         EVK_API operator const vk::DescriptorSetLayout& () const { return *layout; }
+
         vk::raii::DescriptorSetLayout layout;
 		uint32_t descriptorCount;
     };
 
     struct MutableDescriptorSet : Resource
     {
+        using Descriptor = std::variant<vk::DescriptorImageInfo, vk::DescriptorBufferInfo, vk::BufferView>;
         EVK_API MutableDescriptorSet() : Resource{ nullptr }, pool{ nullptr }, set{ nullptr } {}
         EVK_API MutableDescriptorSet(
             const evk::SharedPtr<Device>& device,
@@ -242,14 +245,32 @@ export namespace evk
         {
 			// pool
 	        const vk::DescriptorPoolSize poolSize { vk::DescriptorType::eMutableEXT, layout.descriptorCount };
-            const vk::DescriptorPoolCreateInfo descPoolInfo{ poolFlags | vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSize };
+            const vk::DescriptorPoolCreateInfo descPoolInfo{ poolFlags, 1, poolSize };
             pool = vk::raii::DescriptorPool{ *dev, descPoolInfo };
             // set
-            //const vk::DescriptorSetVariableDescriptorCountAllocateInfo varDescCountAllocInfo = { 1, &bindings.back().first.descriptorCount };
-            const vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo{ *pool, *layout.layout, nullptr };
+            const vk::DescriptorSetVariableDescriptorCountAllocateInfo varDescCountAllocInfo = { 1, &layout.descriptorCount };
+            const vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo{ *pool, *layout.layout, &varDescCountAllocInfo };
             set = dev->allocateDescriptorSets(descriptorSetAllocateInfo)[0].release();
         }
         EVK_API operator const vk::DescriptorSet& () const { return set; }
+
+        EVK_API void write(const uint32_t index, vk::DescriptorType type, const Descriptor& data)
+        {
+            vk::WriteDescriptorSet write { set, 0, index, 1, type };
+            std::visit([&]<typename T>(const T & v) {
+                if constexpr (std::is_same_v<T, vk::DescriptorImageInfo>) {
+                    write.setImageInfo(v);
+                }
+                else if constexpr (std::is_same_v<T, vk::DescriptorBufferInfo>) {
+                    write.setBufferInfo(v);
+                }
+                else if constexpr (std::is_same_v<T, vk::BufferView>) {
+                    write.setTexelBufferView(v);
+                }
+                else throw std::runtime_error("Descriptor type not supported");
+            }, data);
+            dev->updateDescriptorSets(write, {});
+        }
 
         vk::raii::DescriptorPool pool;
         vk::DescriptorSet set;
