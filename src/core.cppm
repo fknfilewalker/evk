@@ -62,12 +62,12 @@ export namespace evk
             void* pNext = nullptr
         );
 
-        EVK_API [[nodiscard]] std::optional<uint32_t> findMemoryTypeIndex(
+        [[nodiscard]] EVK_API std::optional<uint32_t> findMemoryTypeIndex(
             const vk::MemoryRequirements& requirements, 
             vk::MemoryPropertyFlags propertyFlags
         ) const;
 
-        EVK_API [[nodiscard]] bool imageFormatSupported(
+        [[nodiscard]] EVK_API bool imageFormatSupported(
             vk::Format format,
             vk::ImageType type,
             vk::ImageTiling tiling,
@@ -111,7 +111,7 @@ export namespace evk
             vk::CommandPoolCreateFlags flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer
         );
 
-        EVK_API [[nodiscard]] vk::raii::CommandBuffer allocateCommandBuffer(vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
+        [[nodiscard]] EVK_API vk::raii::CommandBuffer allocateCommandBuffer(vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
 
         vk::CommandPoolCreateFlags flags;
         Device::QueueFamily queueFamily;
@@ -168,8 +168,8 @@ export namespace evk
             cb.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(*this));
             return *this;
         }
-        EVK_API [[nodiscard]] bool is_layout(vk::ImageLayout l) const { return oldLayout == l; }
-        EVK_API [[nodiscard]] bool is_not_layout(vk::ImageLayout l) const { return oldLayout != l; }
+        [[nodiscard]] EVK_API bool is_layout(vk::ImageLayout l) const { return oldLayout == l; }
+        [[nodiscard]] EVK_API bool is_not_layout(vk::ImageLayout l) const { return oldLayout != l; }
     };
 
     struct Image : Resource, Shareable<Image>
@@ -479,8 +479,8 @@ export namespace evk
         EVK_API Frame& getCurrentFrame() { return frames.back(); }
         EVK_API vk::Image& getCurrentImage() { return images[currentImageIdx]; }
         EVK_API vk::raii::ImageView& getCurrentImageView() { return views[currentImageIdx]; }
-        EVK_API [[nodiscard]] const vk::Extent2D& extent() const { return swapchainCreateInfo.imageExtent; }
-        EVK_API [[nodiscard]] uint32_t imageCount() const { return swapchainCreateInfo.minImageCount; }
+        [[nodiscard]] EVK_API const vk::Extent2D& extent() const { return swapchainCreateInfo.imageExtent; }
+        [[nodiscard]] EVK_API uint32_t imageCount() const { return swapchainCreateInfo.minImageCount; }
 
         vk::SwapchainCreateInfoKHR swapchainCreateInfo;
         uint32_t currentImageIdx, previousImageIdx;
