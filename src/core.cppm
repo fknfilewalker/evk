@@ -156,12 +156,15 @@ export namespace evk
         }
         EVK_API constexpr ImageMemoryBarrier2& swap_src_dst()
         {
+			const auto _srcStageMask = srcStageMask;
+            const auto _srcAccessMask = srcAccessMask;
+            const auto _oldLayout = oldLayout;
             srcStageMask = dstStageMask;
             srcAccessMask = dstAccessMask;
             oldLayout = newLayout;
-            dstStageMask = {};
-            dstAccessMask = {};
-            newLayout = {};
+            dstStageMask = _srcStageMask;
+            dstAccessMask = _srcAccessMask;
+            newLayout = _oldLayout;
             return *this;
         }
         EVK_API ImageMemoryBarrier2& pipelineBarrier(const vk::raii::CommandBuffer& cb) {
