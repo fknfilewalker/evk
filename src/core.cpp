@@ -170,12 +170,12 @@ Image::Image(
     //imageViewAddressProperties = imageView.getAddressNVX();
 
     //{
-    //    auto properties = device->physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceHostImageCopyPropertiesEXT>();
-    //    auto hostImageCopyProperties = properties.get<vk::PhysicalDeviceHostImageCopyPropertiesEXT>();
+    //    auto properties = device->physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceHostImageCopyProperties>();
+    //    auto hostImageCopyProperties = properties.get<vk::PhysicalDeviceHostImageCopyProperties>();
 
     //    auto imageFormatInfo = vk::PhysicalDeviceImageFormatInfo2{ format, imageType, tiling, usageFlags, {} };
-    //    //auto formatProperties = device->physicalDevice.getImageFormatProperties2<vk::ImageFormatProperties2, vk::HostImageCopyDevicePerformanceQueryEXT>(imageFormatInfo);
-    //    //auto hostImageCopyDevicePerformanceQuery = formatProperties.get<vk::HostImageCopyDevicePerformanceQueryEXT>();
+    //    //auto formatProperties = device->physicalDevice.getImageFormatProperties2<vk::ImageFormatProperties2, vk::HostImageCopyDevicePerformanceQuery>(imageFormatInfo);
+    //    //auto hostImageCopyDevicePerformanceQuery = formatProperties.get<vk::HostImageCopyDevicePerformanceQuery>();
 
     //    int x = 2;
     //}
@@ -212,25 +212,25 @@ void Image::resize(vk::Extent3D ex)
 void Image::transitionLayout(const vk::ImageLayout newLayout)
 {
     const vk::ImageSubresourceRange imageSubresourceRange{ aspectMask, 0, 1, 0, 1 };
-    const vk::HostImageLayoutTransitionInfoEXT hostImageLayoutTransitionInfoEXT{ *image, barrier.oldLayout, newLayout, imageSubresourceRange };
-    dev->transitionImageLayoutEXT(hostImageLayoutTransitionInfoEXT);
+    const vk::HostImageLayoutTransitionInfo hostImageLayoutTransitionInfo{ *image, barrier.oldLayout, newLayout, imageSubresourceRange };
+    dev->transitionImageLayout(hostImageLayoutTransitionInfo);
     barrier.oldLayout = newLayout;
 }
 void Image::copyMemoryToImage(const void* ptr) const
 {
-    const auto memoryToImageCopy = vk::MemoryToImageCopyEXT{ ptr }
+    const auto memoryToImageCopy = vk::MemoryToImageCopy{ ptr }
         .setImageExtent(extent)
         .setImageSubresource({ aspectMask, 0, 0, 1 });
-    const vk::CopyMemoryToImageInfoEXT copyMemoryToImageInfo{ {}, *image, barrier.oldLayout, memoryToImageCopy };
-    dev->copyMemoryToImageEXT(copyMemoryToImageInfo);
+    const vk::CopyMemoryToImageInfo copyMemoryToImageInfo{ {}, *image, barrier.oldLayout, memoryToImageCopy };
+    dev->copyMemoryToImage(copyMemoryToImageInfo);
 }
 void Image::copyImageToMemory(void* ptr) const
 {
-    const auto imageToMemoryCopy = vk::ImageToMemoryCopyEXT{ ptr }
+    const auto imageToMemoryCopy = vk::ImageToMemoryCopy{ ptr }
         .setImageExtent(extent)
         .setImageSubresource({ aspectMask, 0, 0, 1 });
-    const vk::CopyImageToMemoryInfoEXT copyImageToMemoryInfo{ {}, *image, barrier.oldLayout, imageToMemoryCopy };
-    dev->copyImageToMemoryEXT(copyImageToMemoryInfo);
+    const vk::CopyImageToMemoryInfo copyImageToMemoryInfo{ {}, *image, barrier.oldLayout, imageToMemoryCopy };
+    dev->copyImageToMemory(copyImageToMemoryInfo);
 }
 
 DescriptorSetLayout::DescriptorSetLayout(
