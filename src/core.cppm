@@ -12,7 +12,7 @@ module;
 #include <utility>
 export module evk:core;
 import :utils;
-import vulkan_hpp;
+import vulkan;
 
 export namespace evk
 {

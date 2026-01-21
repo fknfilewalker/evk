@@ -3,3 +3,4 @@
 vulkan-headers/
 .DS_Store
 build/
+.idea/

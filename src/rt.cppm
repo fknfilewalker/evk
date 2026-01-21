@@ -7,7 +7,7 @@ module;
 export module evk:rt;
 import :core;
 import :utils;
-import vulkan_hpp;
+import vulkan;
 
 export namespace evk::rt {
 	struct SBT : Resource {

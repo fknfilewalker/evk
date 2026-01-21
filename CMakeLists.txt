@@ -30,7 +30,7 @@ include(FetchContent)
 # VULKAN-HEADERS                 #
 #================================#
 # FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/heads/main.zip QUIET)
-FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.4.328.zip QUIET)
+FetchContent_Populate(vulkan-headers URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.4.339.zip QUIET)
 message(STATUS "Vulkan-Headers dir: ${vulkan-headers_SOURCE_DIR}")
 
 #================================#
@@ -39,8 +39,7 @@ message(STATUS "Vulkan-Headers dir: ${vulkan-headers_SOURCE_DIR}")
 add_library(${PROJECT_NAME} SHARED)
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
-    PUBLIC FILE_SET CXX_MODULES BASE_DIRS "${vulkan-headers_SOURCE_DIR}" FILES "${vulkan-headers_SOURCE_DIR}/include/vulkan/vulkan.cppm"
-    PUBLIC FILE_SET CXX_MODULES BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src" FILES "src/evk.cppm" "src/core.cppm" "src/rt.cppm" "src/utils.cppm"
+    PUBLIC FILE_SET CXX_MODULES BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src" FILES "src/no_std_vulkan.cppm" "src/evk.cppm" "src/core.cppm" "src/rt.cppm" "src/utils.cppm"
     PRIVATE "src/core.cpp" "src/rt.cpp" "src/utils.cpp"
 )
 

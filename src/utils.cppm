@@ -8,7 +8,7 @@ module;
 #include <windows.h>
 #endif
 export module evk:utils;
-import vulkan_hpp;
+import vulkan;
 
 export namespace evk {
     constexpr bool isDebug =
