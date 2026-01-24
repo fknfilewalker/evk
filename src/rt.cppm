@@ -138,13 +138,11 @@ export namespace evk::rt {
 
 	using Transform = vk::TransformMatrixKHR;
 	using AABB = vk::AabbPositionsKHR;
-	EVK_API const Transform identityMatrix{
-		std::array<std::array<float, 4>, 3>{
-			std::array<float, 4>{1.0f, 0.0f, 0.0f, 0.0f},
-			std::array<float, 4>{0.0f, 1.0f, 0.0f, 0.0f},
-			std::array<float, 4>{0.0f, 0.0f, 1.0f, 0.0f}
-		}
-	};
+	inline constexpr auto identityMatrix = std::array<std::array<float, 4>, 3>{
+        std::array<float, 4>{1.0f, 0.0f, 0.0f, 0.0f},
+        std::array<float, 4>{0.0f, 1.0f, 0.0f, 0.0f},
+        std::array<float, 4>{0.0f, 0.0f, 1.0f, 0.0f}
+    };
 
 	struct TriangleGeometry {
 		EVK_API TriangleGeometry();
