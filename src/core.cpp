@@ -119,13 +119,29 @@ Buffer::Buffer(
     const evk::SharedPtr<Device>& device,
     vk::DeviceSize size,
     const vk::BufferUsageFlags usageFlags,
-    const vk::MemoryPropertyFlags memoryPropertyFlags
-) : Resource{ device }, buffer{ *dev, { {}, size, usageFlags } }, memory{ nullptr }, deviceAddress{ 0 }, size{ size }, _usageFlags{ usageFlags }, _memoryPropertyFlags{ memoryPropertyFlags }
+    const vk::MemoryPropertyFlags memoryPropertyFlags,
+    bool exportable
+) : Resource{ device }, buffer{ nullptr }, memory{ nullptr }, deviceAddress{ 0 }, size{ 0 }, _usageFlags{ usageFlags }, _memoryPropertyFlags{ memoryPropertyFlags }, externalHandle{ (EXPORT_HANDLE) exportable }
 {
+    resize(size);
+}
+
+void Buffer::resize(const vk::DeviceSize& s)
+{
+    if (s == size) return;
+    size = s;
+
+    constexpr auto extFlags = isWindows ? vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 : vk::ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
+    vk::ExternalMemoryBufferCreateInfo externalBufferInfo = { extFlags };
+
+    buffer = vk::raii::Buffer{ *dev, { {}, size, _usageFlags, vk::SharingMode::eExclusive, {}, {}, externalHandle ? externalBufferInfo : nullptr  } };
     const auto memoryRequirements = buffer.getMemoryRequirements();
     const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, _memoryPropertyFlags);
     if (!memoryTypeIndex.has_value()) throw std::runtime_error{ "No memory type index found" };
-    constexpr vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress };
+
+    constexpr vk::ExportMemoryAllocateInfo exportInfo{ extFlags };
+    const vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress, {}, externalHandle ? exportInfo : nullptr };
+
     const vk::MemoryAllocateInfo memoryAllocateInfo{ memoryRequirements.size, memoryTypeIndex.value(), &memoryAllocateFlagsInfo };
     memory = vk::raii::DeviceMemory{ *dev, memoryAllocateInfo };
     buffer.bindMemory(*memory, 0);
@@ -134,24 +150,16 @@ Buffer::Buffer(
         const vk::BufferDeviceAddressInfo bufferDeviceAddressInfo{ *buffer };
         deviceAddress = dev->getBufferAddress(bufferDeviceAddressInfo); /* for bindless rendering */
     }
-}
 
-void Buffer::resize(const vk::DeviceSize& s)
-{
-    if (s == size) return;
-    size = s;
-    buffer = vk::raii::Buffer{ *dev, { {}, size, _usageFlags } };
-    const auto memoryRequirements = buffer.getMemoryRequirements();
-    const auto memoryTypeIndex = dev->findMemoryTypeIndex(memoryRequirements, _memoryPropertyFlags);
-    if (!memoryTypeIndex.has_value()) throw std::runtime_error{ "No memory type index found" };
-    constexpr vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress };
-    const vk::MemoryAllocateInfo memoryAllocateInfo{ memoryRequirements.size, memoryTypeIndex.value(), &memoryAllocateFlagsInfo };
-    memory = vk::raii::DeviceMemory{ *dev, memoryAllocateInfo };
-    buffer.bindMemory(*memory, 0);
-
-    if (_usageFlags & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
-        const vk::BufferDeviceAddressInfo bufferDeviceAddressInfo{ *buffer };
-        deviceAddress = dev->getBufferAddress(bufferDeviceAddressInfo); /* for bindless rendering */
+    if (externalHandle) {
+        if (evk::isWindows) {
+            vk::MemoryGetWin32HandleInfoKHR getHandleInfo{ memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 };
+            externalHandle = (EXPORT_HANDLE)dev->getMemoryWin32HandleKHR(getHandleInfo);
+        }
+        else {
+            vk::MemoryGetFdInfoKHR getFdInfo{ memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueFd };
+            externalHandle = (EXPORT_HANDLE)dev->getMemoryFdKHR(getFdInfo);
+        }
     }
 }
 

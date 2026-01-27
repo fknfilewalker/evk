@@ -125,12 +125,18 @@ export namespace evk
     // }
     struct Buffer : Resource, Shareable<Buffer>
     {
+#ifdef _WIN32
+        using EXPORT_HANDLE = void*;
+#elif __linux__
+        using EXPORT_HANDLE = int;
+#endif
         EVK_API Buffer();
         EVK_API Buffer(
             const evk::SharedPtr<Device>& device,
             vk::DeviceSize size,
             vk::BufferUsageFlags usageFlags,
-            vk::MemoryPropertyFlags memoryPropertyFlags
+            vk::MemoryPropertyFlags memoryPropertyFlags,
+            bool exportable = false
         );
         EVK_API void resize(const vk::DeviceSize& s);
         vk::raii::Buffer buffer;
@@ -140,6 +146,8 @@ export namespace evk
 
         vk::BufferUsageFlags _usageFlags;
         vk::MemoryPropertyFlags _memoryPropertyFlags;
+
+        EXPORT_HANDLE externalHandle;
     };
 
     struct ImageMemoryBarrier2 : vk::ImageMemoryBarrier2 {
