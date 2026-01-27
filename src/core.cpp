@@ -152,14 +152,13 @@ void Buffer::resize(const vk::DeviceSize& s)
     }
 
     if (externalHandle) {
-        if (evk::isWindows) {
+        #ifdef VK_USE_PLATFORM_WIN32_KHR
             vk::MemoryGetWin32HandleInfoKHR getHandleInfo{ memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 };
             externalHandle = (EXPORT_HANDLE)dev->getMemoryWin32HandleKHR(getHandleInfo);
-        }
-        else {
+        #else
             vk::MemoryGetFdInfoKHR getFdInfo{ memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueFd };
             externalHandle = (EXPORT_HANDLE)dev->getMemoryFdKHR(getFdInfo);
-        }
+        #endif
     }
 }
 
