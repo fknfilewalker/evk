@@ -36,7 +36,7 @@ int main(int /*argc*/, char** /*argv*/)
     const auto& ctx = evk::context();
     evk::utils::remExtsOrLayersIfNotAvailable(iExtensions, ctx.enumerateInstanceExtensionProperties(), [](const char* e) { std::printf("Extension removed because not available: %s\n", e); });
     evk::utils::remExtsOrLayersIfNotAvailable(iLayers, ctx.enumerateInstanceLayerProperties(), [](const char* e) { std::printf("Layer removed because not available: %s\n", e); });
-    auto instance = evk::Instance::shared(ctx, instanceFlags, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion12 }, iLayers, iExtensions);
+    auto instance = evk::Instance::shared(ctx, instanceFlags, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion14 }, iLayers, iExtensions);
 
     // Surface Setup
     vk::raii::SurfaceKHR surface { nullptr };
@@ -58,17 +58,17 @@ int main(int /*argc*/, char** /*argv*/)
     if (!queueFamilyIndex.has_value()) exitWithError("No queue family index found");
     if (!physicalDevice.getSurfaceSupportKHR(queueFamilyIndex.value(), surface)) exitWithError("Queue family does not support presentation");
     // * check extensions
-    std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName, vk::KHRDynamicRenderingExtensionName, vk::KHRSynchronization2ExtensionName, vk::EXTSwapchainMaintenance1ExtensionName };
+    std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName, vk::EXTSwapchainMaintenance1ExtensionName };
     if constexpr (evk::isApple) dExtensions.emplace_back("VK_KHR_portability_subset");
 
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
     // * activate features
-    vk::PhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ true };
-    vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT swapchainMaintenance{ true, &bufferDeviceAddressFeatures };
-    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &swapchainMaintenance };
-    vk::PhysicalDeviceSynchronization2Features synchronization2Features{ true, &shaderObjectFeatures };
-    vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{ true, &synchronization2Features };
-    vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &dynamicRenderingFeatures };
+    auto vulkan12Features = vk::PhysicalDeviceVulkan12Features{}.setBufferDeviceAddress(true);
+    auto vulkan13Features = vk::PhysicalDeviceVulkan13Features{}
+        .setSynchronization2(true).setDynamicRendering(true).setPNext(&vulkan12Features);
+    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &vulkan13Features };
+    vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT swapchainMaintenance{ true, &shaderObjectFeatures };
+    vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &swapchainMaintenance };
     physicalDeviceFeatures2.features.shaderInt64 = true;
     // * create device
     auto device = evk::make_shared<evk::Device>(instance, physicalDevice, dExtensions, evk::Device::Queues{ {queueFamilyIndex.value(), 1} }, &physicalDeviceFeatures2);

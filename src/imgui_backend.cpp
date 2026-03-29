@@ -149,12 +149,11 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 					vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear,
 					vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eHostTransfer,
 					vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
-				backend_tex->image.transitionLayout(vk::ImageLayout::eTransferDstOptimal);
+				backend_tex->image.transitionLayout(vk::ImageLayout::eGeneral);
 				backend_tex->image.copyMemoryToImage(tex->GetPixels());
-				backend_tex->image.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 				backend_tex->descriptorSet = evk::DescriptorSet{ dev, descriptorSetLayout };
 				backend_tex->descriptorSet.setDescriptor(0, vk::DescriptorImageInfo{
-					*sampler, backend_tex->image.imageView, vk::ImageLayout::eShaderReadOnlyOptimal });
+					*sampler, backend_tex->image.imageView, vk::ImageLayout::eGeneral });
 				backend_tex->descriptorSet.update();
 				tex->SetTexID(reinterpret_cast<ImTextureID>(
 					static_cast<vk::DescriptorSet::NativeType>(backend_tex->descriptorSet.set)));
@@ -163,9 +162,7 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 			}
 			else if (tex->Status == ImTextureStatus_WantUpdates) {
 				auto* backend_tex = static_cast<BackendTexture*>(tex->BackendUserData);
-				backend_tex->image.transitionLayout(vk::ImageLayout::eTransferDstOptimal);
 				backend_tex->image.copyMemoryToImage(tex->GetPixels());
-				backend_tex->image.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 				tex->SetStatus(ImTextureStatus_OK);
 			}
 			else if (tex->Status == ImTextureStatus_WantDestroy) {

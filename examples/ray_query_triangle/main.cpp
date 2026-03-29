@@ -34,7 +34,7 @@ int main(int /*argc*/, char** /*argv*/)
     const auto& ctx = evk::context();
     evk::utils::remExtsOrLayersIfNotAvailable(iExtensions, ctx.enumerateInstanceExtensionProperties(), [](const char* e) { std::printf("Extension removed because not available: %s\n", e); });
     evk::utils::remExtsOrLayersIfNotAvailable(iLayers, ctx.enumerateInstanceLayerProperties(), [](const char* e) { std::printf("Layer removed because not available: %s\n", e); });
-    auto instance = evk::Instance::shared(ctx, vk::InstanceCreateFlags{}, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion13 }, iLayers, iExtensions);
+    auto instance = evk::Instance::shared(ctx, vk::InstanceCreateFlags{}, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion14 }, iLayers, iExtensions);
 
     // Surface Setup
     vk::raii::SurfaceKHR surface{ nullptr };
@@ -56,26 +56,27 @@ int main(int /*argc*/, char** /*argv*/)
     if (!queueFamilyIndex.has_value()) exitWithError("No queue family index found");
     if (!physicalDevice.getSurfaceSupportKHR(queueFamilyIndex.value(), *surface)) exitWithError("Queue family does not support presentation");
     // * check extensions
-    std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName, vk::KHRDynamicRenderingExtensionName,
+    std::vector dExtensions{ vk::KHRSwapchainExtensionName, vk::EXTShaderObjectExtensionName,
         vk::KHRRayQueryExtensionName, vk::KHRAccelerationStructureExtensionName, vk::KHRDeferredHostOperationsExtensionName,
-        vk::KHRFormatFeatureFlags2ExtensionName, vk::KHRSynchronization2ExtensionName, vk::KHRMaintenance4ExtensionName, vk::EXTHostImageCopyExtensionName,
         vk::EXTSwapchainMaintenance1ExtensionName };
     if constexpr (evk::isApple) dExtensions.emplace_back("VK_KHR_portability_subset");
 
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
     // * activate features
-    //vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR> featuresChain;
     vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ true };
-    vk::PhysicalDeviceMaintenance4Features maintenance4Features{ true, &accelerationStructureFeatures };
-    auto indexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeatures{}.setDescriptorBindingVariableDescriptorCount(true).setDescriptorBindingPartiallyBound(true).setPNext(&maintenance4Features);
-    vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{ true, &indexingFeatures };
-    vk::PhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ true, false, false, &rayQueryFeatures };
-    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &bufferDeviceAddressFeatures };
-    vk::PhysicalDeviceHostImageCopyFeaturesEXT hostImageCopyFeatures{ true, &shaderObjectFeatures };
-    vk::PhysicalDeviceSynchronization2Features synchronization2Features{ true, &hostImageCopyFeatures };
-    vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT swapchainMaintenance{ true, &synchronization2Features };
-    vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{ true, &swapchainMaintenance };
-    vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &dynamicRenderingFeatures };
+    vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{ true, &accelerationStructureFeatures };
+    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &rayQueryFeatures };
+    vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT swapchainMaintenance{ true, &shaderObjectFeatures };
+    auto vulkan14Features = vk::PhysicalDeviceVulkan14Features{}
+        .setHostImageCopy(true).setPNext(&swapchainMaintenance);
+    auto vulkan13Features = vk::PhysicalDeviceVulkan13Features{}
+        .setSynchronization2(true).setDynamicRendering(true).setMaintenance4(true).setPNext(&vulkan14Features);
+    auto vulkan12Features = vk::PhysicalDeviceVulkan12Features{}
+        .setBufferDeviceAddress(true)
+        .setDescriptorBindingVariableDescriptorCount(true)
+        .setDescriptorBindingPartiallyBound(true)
+        .setPNext(&vulkan13Features);
+    vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &vulkan12Features };
     physicalDeviceFeatures2.features.shaderInt64 = true;
     // * create device
     auto device = evk::Device::shared(instance, physicalDevice, dExtensions, evk::Device::Queues{ {queueFamilyIndex.value(), 1} }, &physicalDeviceFeatures2);
@@ -197,7 +198,7 @@ int main(int /*argc*/, char** /*argv*/)
             .setDstStageMask(vk::PipelineStageFlagBits2::eTransfer).setDstAccessMask(vk::AccessFlagBits2::eTransferWrite);
         cb.pipelineBarrier2(dependencyInfo);
         imageMemoryBarrier.image = src_image.image;
-        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eGeneral).setNewLayout(vk::ImageLayout::eTransferSrcOptimal)
+        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eGeneral).setNewLayout(vk::ImageLayout::eGeneral)
             .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader).setSrcAccessMask(vk::AccessFlagBits2::eMemoryWrite)
             .setDstStageMask(vk::PipelineStageFlagBits2::eTransfer).setDstAccessMask(vk::AccessFlagBits2::eTransferRead);
         cb.pipelineBarrier2(dependencyInfo);
@@ -206,17 +207,11 @@ int main(int /*argc*/, char** /*argv*/)
             .setSrcSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 })
             .setDstSubresource({ vk::ImageAspectFlagBits::eColor, 0, 0, 1 });
         auto copy_info = vk::CopyImageInfo2KHR{}
-            .setSrcImage(src_image.image).setSrcImageLayout(vk::ImageLayout::eTransferSrcOptimal)
+            .setSrcImage(src_image.image).setSrcImageLayout(vk::ImageLayout::eGeneral)
             .setDstImage(swapchain.getCurrentImage()).setDstImageLayout(vk::ImageLayout::eTransferDstOptimal)
             .setRegions(region);
         cb.copyImage2(copy_info);
 
-        imageMemoryBarrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
-        imageMemoryBarrier.newLayout = vk::ImageLayout::eGeneral;
-        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferSrcOptimal).setNewLayout(vk::ImageLayout::eGeneral)
-            .setSrcStageMask(vk::PipelineStageFlagBits2::eTransfer).setSrcAccessMask(vk::AccessFlagBits2::eTransferRead)
-            .setDstStageMask(vk::PipelineStageFlagBits2::eNone).setDstAccessMask(vk::AccessFlagBits2::eNone);
-        cb.pipelineBarrier2(dependencyInfo);
         imageMemoryBarrier.image = swapchain.getCurrentImage();
         imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal).setNewLayout(vk::ImageLayout::ePresentSrcKHR)
             .setSrcStageMask(vk::PipelineStageFlagBits2::eTransfer).setSrcAccessMask(vk::AccessFlagBits2::eTransferWrite)

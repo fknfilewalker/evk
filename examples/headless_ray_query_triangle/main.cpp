@@ -30,7 +30,7 @@ int main(int /*argc*/, char** /*argv*/)
     
     vk::InstanceCreateFlags instanceFlags = {};
     if constexpr (evk::isApple) instanceFlags = vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
-    auto instance = evk::Instance::shared(ctx, instanceFlags, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion13 }, iLayers, iExtensions);
+    auto instance = evk::Instance::shared(ctx, instanceFlags, vk::ApplicationInfo{ nullptr, 0, nullptr, 0, vk::ApiVersion14 }, iLayers, iExtensions);
 
     // Device setup
     const vk::raii::PhysicalDevices physicalDevices{ instance };
@@ -41,21 +41,18 @@ int main(int /*argc*/, char** /*argv*/)
     if (!queueFamilyIndex.has_value()) exitWithError("No queue family index found");
     // * check extensions
     std::vector dExtensions{ vk::EXTShaderObjectExtensionName, vk::KHRRayQueryExtensionName, vk::KHRAccelerationStructureExtensionName,
-    	vk::KHRDeferredHostOperationsExtensionName, vk::EXTHostImageCopyExtensionName, vk::KHRCopyCommands2ExtensionName,
-        vk::KHRFormatFeatureFlags2ExtensionName, vk::KHRSynchronization2ExtensionName, vk::KHRMaintenance4ExtensionName };
+        vk::KHRDeferredHostOperationsExtensionName };
     if constexpr (evk::isApple) dExtensions.emplace_back("VK_KHR_portability_subset");
     if (!evk::utils::extensionsOrLayersAvailable(physicalDevice.enumerateDeviceExtensionProperties(), dExtensions, [](const char* e) { std::printf("Extension not available: %s\n", e); })) exitWithError();
 
-	// * activate features
-    //vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR> featuresChain;
+    // * activate features
     vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ true };
-    vk::PhysicalDeviceMaintenance4Features maintenance4Features{ true, &accelerationStructureFeatures };
-    vk::PhysicalDeviceHostImageCopyFeaturesEXT hostImageCopyFeatures{ true, &maintenance4Features };
-    vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{ true, &hostImageCopyFeatures };
-    vk::PhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ true, false, false, &rayQueryFeatures };
-    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &bufferDeviceAddressFeatures };
-    vk::PhysicalDeviceSynchronization2Features synchronization2Features{ true, &shaderObjectFeatures };
-    vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &synchronization2Features };
+    vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{ true, &accelerationStructureFeatures };
+    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{ true, &rayQueryFeatures };
+    auto vulkan14Features = vk::PhysicalDeviceVulkan14Features{}.setHostImageCopy(true).setPNext(&shaderObjectFeatures);
+    auto vulkan13Features = vk::PhysicalDeviceVulkan13Features{}.setSynchronization2(true).setMaintenance4(true).setPNext(&vulkan14Features);
+    auto vulkan12Features = vk::PhysicalDeviceVulkan12Features{}.setBufferDeviceAddress(true).setPNext(&vulkan13Features);
+    vk::PhysicalDeviceFeatures2 physicalDeviceFeatures2{ {}, &vulkan12Features };
     physicalDeviceFeatures2.features.shaderInt64 = true;
     // * create device
     auto device = evk::make_shared<evk::Device>(instance, physicalDevice, dExtensions, evk::Device::Queues{ { queueFamilyIndex.value(), 1 } }, &physicalDeviceFeatures2);
@@ -149,5 +146,6 @@ int main(int /*argc*/, char** /*argv*/)
     for (uint32_t i = 0; i < (target.width * target.height * 4u); i += 4u) {
         fs << static_cast<int>(pixels[i]) << " " << static_cast<int>(pixels[i + 1]) << " " << static_cast<int>(pixels[i + 2]) << " ";
     }
+    std::printf("Saved to image.ppm\n");
     return 0;
 }
