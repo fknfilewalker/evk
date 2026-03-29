@@ -81,7 +81,7 @@ endif()
 # optional imgui backend
 # window backends need to be included in the main project
 if(EVK_INCLUDE_IMGUI_BACKEND) # imgui
-    set(EVK_INCLUDE_IMGUI_VERSION "v1.92.3" CACHE STRING "ImGui version")
+    set(EVK_INCLUDE_IMGUI_VERSION "v1.92.6" CACHE STRING "ImGui version")
     FetchContent_Populate(imgui URL https://github.com/ocornut/imgui/archive/refs/tags/${EVK_INCLUDE_IMGUI_VERSION}.zip QUIET)
     message(STATUS "ImGui-Source dir: ${imgui_SOURCE_DIR}")
     if(NOT EVK_IS_TOPLEVEL_PROJECT)
@@ -128,7 +128,7 @@ if(EVK_BUILD_EXAMPLES)
     set(SDL_OPENGLES OFF)
     set(SDL_VULKAN OFF)
     set(SDL_OFFSCREEN OFF)
-    FetchContent_Declare(sdl URL https://github.com/libsdl-org/SDL/releases/download/release-3.4.0/SDL3-3.4.0.zip)
+    FetchContent_Declare(sdl URL https://github.com/libsdl-org/SDL/releases/download/release-3.4.2/SDL3-3.4.2.zip)
     FetchContent_MakeAvailable(sdl)
     set_target_properties(SDL3-shared PROPERTIES FOLDER "${EVK_EXTERNAL_FOLDER}/sdl")
     set_target_properties(SDL_uclibc PROPERTIES FOLDER "${EVK_EXTERNAL_FOLDER}/sdl")

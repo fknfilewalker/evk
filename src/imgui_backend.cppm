@@ -30,7 +30,6 @@ export namespace evk
 		);
 
         evk::DescriptorSetLayout descriptorSetLayout;
-		evk::DescriptorSet descriptorSet;
 		evk::ShaderObject shader;
 		std::vector<evk::SharedPtr<evk::Buffer>> vertexBuffers;
 		std::vector<void*> vertexBuffersPtr;
@@ -39,7 +38,6 @@ export namespace evk
 		std::vector<std::deque<evk::SharedPtr<evk::Buffer>>> vertexBuffersToBeDeleted;
 		std::vector<std::deque<evk::SharedPtr<evk::Buffer>>> indexBuffersToBeDeleted;
 
-		evk::Image fontImage;
 		vk::raii::Sampler sampler;
 	};
 

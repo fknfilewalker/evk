@@ -12,6 +12,11 @@ using namespace evk;
 
 namespace
 {
+	struct BackendTexture {
+		evk::Image image;
+		evk::DescriptorSet descriptorSet;
+	};
+
 	constexpr uint32_t imgui_backend_shaders_spv[] = {
 		0x07230203, 0x00010500, 0x00000028, 0x0000006b, 0x00000000, 0x00020011, 0x000014e3, 0x00020011, 0x00000027,
 	    0x00020011, 0x00000001, 0x0009000a, 0x5f565053, 0x5f52484b, 0x73796870, 0x6c616369, 0x6f74735f, 0x65676172,
@@ -86,7 +91,7 @@ ImGuiBackend::ImGuiBackend(
 	uint32_t imageCount
 ) : Resource{ device }, descriptorSetLayout{ device, {
         { { 0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment } }
-    } }, descriptorSet{ device, descriptorSetLayout }, sampler{ nullptr }
+    } }, sampler{ nullptr }
 {
 	vertexBuffers.resize(imageCount);
 	vertexBuffersPtr.resize(imageCount);
@@ -107,30 +112,18 @@ ImGuiBackend::ImGuiBackend(
 		{ vk::ShaderStageFlagBits::eVertex, imgui_backend_shaders_spv, "vertexMain" },
 		{ vk::ShaderStageFlagBits::eFragment, imgui_backend_shaders_spv, "fragmentMain" }
 	}, { pcRange }, {}, { descriptorSetLayout.layout } };
+
+	ImGui::GetIO().BackendFlags |= ImGuiBackendFlags_RendererHasTextures | ImGuiBackendFlags_RendererHasVtxOffset;
 }
 
 void ImGuiBackend::setFont(const std::string_view filepath, const float scaleFactor)
 {
-	const auto& io = ImGui::GetIO();
 	if (!filepath.empty()) {
-		if (!io.Fonts->AddFontFromFileTTF(filepath.data(), scaleFactor)) {
+		if (!ImGui::GetIO().Fonts->AddFontFromFileTTF(filepath.data(), scaleFactor)) {
 			throw std::runtime_error("failed to load ImGui font");
 		}
 	}
-
-	uint8_t* pixels;
-	int32_t width, height;
-	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
-	fontImage = evk::Image{ dev, { static_cast<uint32_t>(width), static_cast<uint32_t>(height) }, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear,
-		vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eHostTransferEXT, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
-	fontImage.transitionLayout(vk::ImageLayout::eTransferDstOptimal);
-	fontImage.copyMemoryToImage(pixels);
-	fontImage.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-
-	io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<vk::DescriptorSet::NativeType>(descriptorSet.set))); // Store our identifier
-	descriptorSet.setDescriptor(0, vk::DescriptorImageInfo{ *sampler, fontImage.imageView, vk::ImageLayout::eShaderReadOnlyOptimal });
-	descriptorSet.update();
+	// Texture upload is handled via ImTextureData in render()
 }
 
 void ImGuiBackend::setContext(ImGuiContext* ctx) { ImGui::SetCurrentContext(ctx); }
@@ -143,6 +136,48 @@ void ImGuiBackend::render(const vk::raii::CommandBuffer& cb, const uint32_t imag
 	const int fb_width = static_cast<int>(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
 	const int fb_height = static_cast<int>(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
 	if (fb_width <= 0 || fb_height <= 0) return;
+
+	// Handle texture create/update/destroy requests from ImGui
+	if (draw_data->Textures != nullptr) {
+		for (ImTextureData* tex : *draw_data->Textures) {
+			if (tex->Status == ImTextureStatus_WantCreate) {
+				IM_ASSERT(tex->TexID == ImTextureID_Invalid && tex->BackendUserData == nullptr);
+				IM_ASSERT(tex->Format == ImTextureFormat_RGBA32);
+				auto* backend_tex = new BackendTexture();
+				backend_tex->image = evk::Image{ dev,
+					{ static_cast<uint32_t>(tex->Width), static_cast<uint32_t>(tex->Height) },
+					vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear,
+					vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eHostTransfer,
+					vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal };
+				backend_tex->image.transitionLayout(vk::ImageLayout::eTransferDstOptimal);
+				backend_tex->image.copyMemoryToImage(tex->GetPixels());
+				backend_tex->image.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+				backend_tex->descriptorSet = evk::DescriptorSet{ dev, descriptorSetLayout };
+				backend_tex->descriptorSet.setDescriptor(0, vk::DescriptorImageInfo{
+					*sampler, backend_tex->image.imageView, vk::ImageLayout::eShaderReadOnlyOptimal });
+				backend_tex->descriptorSet.update();
+				tex->SetTexID(reinterpret_cast<ImTextureID>(
+					static_cast<vk::DescriptorSet::NativeType>(backend_tex->descriptorSet.set)));
+				tex->BackendUserData = backend_tex;
+				tex->SetStatus(ImTextureStatus_OK);
+			}
+			else if (tex->Status == ImTextureStatus_WantUpdates) {
+				auto* backend_tex = static_cast<BackendTexture*>(tex->BackendUserData);
+				backend_tex->image.transitionLayout(vk::ImageLayout::eTransferDstOptimal);
+				backend_tex->image.copyMemoryToImage(tex->GetPixels());
+				backend_tex->image.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+				tex->SetStatus(ImTextureStatus_OK);
+			}
+			else if (tex->Status == ImTextureStatus_WantDestroy) {
+				if (tex->UnusedFrames >= static_cast<int>(vertexBuffers.size())) {
+					delete static_cast<BackendTexture*>(tex->BackendUserData);
+					tex->BackendUserData = nullptr;
+					tex->SetTexID(ImTextureID_Invalid);
+					tex->SetStatus(ImTextureStatus_Destroyed);
+				}
+			}
+		}
+	}
 
 	size_t delete_history = 4;
     while (vertexBuffersToBeDeleted[imageIdx].size() > delete_history) vertexBuffersToBeDeleted[imageIdx].pop_front();
